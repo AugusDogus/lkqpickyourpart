@@ -1,29 +1,32 @@
-# Create T3 App
+# LKQ Pick Your Part Search
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+Search across LKQ Pick Your Part inventory locations.
 
-## What's next? How do I make an app with this?
+## Features
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+- **Multi-location Search**: Search across all LKQ Pick Your Part locations
+- **Vehicle Details**: Complete vehicle information with images
+- **Direct Links**: Links to official LKQ pages for parts and details
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+## Tech Stack
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+This project is built with the following technologies:
 
-## Learn More
+- [Next.js](https://nextjs.org) - React framework
+- [TypeScript](https://www.typescriptlang.org) - Static type checking
+- [Tailwind CSS](https://tailwindcss.com) - Styling
+- [shadcn/ui](https://ui.shadcn.com) - UI components
+- [tRPC](https://trpc.io) - Type-safe APIs
+- [Cheerio](https://cheerio.js.org) - Server-side HTML parsing
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+*This project was initially scaffolded using [create-t3-app](https://create.t3.gg/).*
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+## Getting Started
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+1. Clone the repository
+2. Install dependencies: `bun install`
+3. Run the development server: `bun dev`
 
-## How do I deploy this?
+## License
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+This project is open source and available under the [MIT License](LICENSE).

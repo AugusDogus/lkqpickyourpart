@@ -5,6 +5,19 @@
 import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
-const config = {};
+const config = {
+    images: {
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "cdn.lkqcorp.com",
+            },
+            {
+                protocol: "https",
+                hostname: "pypimages.azureedge.net",
+            },
+        ],
+    }
+};
 
 export default config;
