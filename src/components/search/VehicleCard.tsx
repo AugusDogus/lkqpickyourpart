@@ -3,6 +3,7 @@
 import { Eye, MapPin, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { memo } from "react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import {
@@ -13,7 +14,10 @@ import {
 } from "~/components/ui/card";
 import type { VehicleCardProps } from "~/lib/types";
 
-export function VehicleCard({ vehicle, onImageClick: _onImageClick }: VehicleCardProps) {
+function VehicleCardComponent({
+  vehicle,
+  onImageClick: _onImageClick,
+}: VehicleCardProps) {
   const primaryImage = vehicle.images[0];
   const hasMultipleImages = vehicle.images.length > 1;
 
@@ -148,3 +152,6 @@ export function VehicleCard({ vehicle, onImageClick: _onImageClick }: VehicleCar
     </Card>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const VehicleCard = memo(VehicleCardComponent);
