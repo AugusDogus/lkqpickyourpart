@@ -2,13 +2,14 @@
 
 import { AlertCircle, Search } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { SearchInput } from "~/components/search/SearchInput";
 import { SearchResults } from "~/components/search/SearchResults";
 import { YearFilter } from "~/components/search/YearFilter";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Skeleton } from "~/components/ui/skeleton";
 import { ERROR_MESSAGES, SEARCH_CONFIG } from "~/lib/constants";
 import type { Vehicle } from "~/lib/types";
 import { api } from "~/trpc/react";
@@ -303,10 +304,55 @@ function SearchPageContent() {
   );
 }
 
+function SearchPageFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="border-b bg-white shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-xl font-bold text-gray-900">
+                LKQ Global Search
+              </h1>
+              <span className="text-sm text-gray-500">
+                Search across all locations
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Search Input Skeleton */}
+        <div className="mb-6">
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        {/* Empty State */}
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+            <Search className="h-12 w-12 text-gray-400" />
+          </div>
+          <h3 className="mb-2 text-lg font-medium text-gray-900">
+            Search for vehicles
+          </h3>
+          <p className="mx-auto max-w-md text-gray-500">
+            Enter a year, make, model, or any combination to search across all
+            LKQ Pick Your Part locations.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SearchPage() {
   return (
     <ErrorBoundary>
-      <SearchPageContent />
+      <Suspense fallback={<SearchPageFallback />}>
+        <SearchPageContent />
+      </Suspense>
     </ErrorBoundary>
   );
 }
