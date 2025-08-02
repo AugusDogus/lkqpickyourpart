@@ -27,7 +27,8 @@ export default function RootLayout({
       <body>
         <NuqsAdapter>
           <TRPCReactProvider>
-            {children} <Analytics />
+            {children}
+            <Analytics />
           </TRPCReactProvider>
         </NuqsAdapter>
         <Toaster />
