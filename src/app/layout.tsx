@@ -1,5 +1,6 @@
 import "~/styles/globals.css";
 
+import { Analytics } from "@vercel/analytics/next";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -25,7 +26,9 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <NuqsAdapter>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            {children} <Analytics />
+          </TRPCReactProvider>
         </NuqsAdapter>
         <Toaster />
       </body>
