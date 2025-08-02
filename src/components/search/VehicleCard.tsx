@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, MapPin, Settings } from "lucide-react";
+import { Eye, ImageIcon, MapPin, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { memo } from "react";
@@ -62,7 +62,8 @@ function VehicleCardComponent({
               variant="secondary"
               className="absolute top-3 left-3 bg-black/50 text-white hover:bg-black/70"
             >
-              +{vehicle.images.length - 1} more
+              <ImageIcon />
+              {vehicle.images.length - 1} more
             </Badge>
           )}
 
