@@ -7,6 +7,8 @@ import "./src/env.js";
 /** @type {import("next").NextConfig} */
 const config = {
     images: {
+        loader: "custom",
+        loaderFile: "./src/lib/wsrvLoader.ts",
         remotePatterns: [
             {
                 protocol: "https",
