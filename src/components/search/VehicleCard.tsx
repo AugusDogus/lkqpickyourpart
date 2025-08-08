@@ -13,6 +13,7 @@ import {
   CardHeader,
 } from "~/components/ui/card";
 import type { VehicleCardProps } from "~/lib/types";
+import wsrvLoader from "~/lib/wsrvLoader";
 
 function VehicleCardComponent({
   vehicle,
@@ -42,6 +43,7 @@ function VehicleCardComponent({
         <div className="bg-muted relative aspect-video overflow-hidden">
           {primaryImage ? (
             <Image
+              loader={wsrvLoader}
               src={primaryImage.url}
               alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
               fill
