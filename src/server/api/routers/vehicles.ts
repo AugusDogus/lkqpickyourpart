@@ -259,6 +259,7 @@ function parseVehicleDetails($element: CheerioSelection): {
   vin: string;
   stockNumber: string;
   yardLocation: { section: string; row: string; space: string };
+  availableDate: string;
 } {
   const detailItems = $element.find(".pypvi_detailItem");
   const details = Array.from(detailItems).map((item) =>
@@ -279,39 +280,24 @@ function parseVehicleDetails($element: CheerioSelection): {
     ? parseYardLocation(locationText)
     : { section: "", row: "", space: "" };
 
-  return { color, vin, stockNumber, yardLocation };
-}
+  // Parse available date
+  const availableText = details.find((text) => text.includes("Available:"));
+  let availableDate = new Date().toISOString();
 
-/**
- * Check if a character is whitespace
- */
-function isWhitespace(char: string): boolean {
-  return (
-    char === " " ||
-    char === "\t" ||
-    char === "\n" ||
-    char === "\r" ||
-    char === "\f" ||
-    char === "\v"
-  );
-}
-
-/**
- * Normalize whitespace in text by replacing multiple whitespace characters with single spaces
- */
-function normalizeWhitespace(text: string): string {
-  const chars = Array.from(text);
-
-  const result = chars.reduce<string[]>((acc, char) => {
-    if (!isWhitespace(char)) {
-      return [...acc, char];
-    } else if (acc.length > 0 && acc[acc.length - 1] !== " ") {
-      return [...acc, " "];
+  if (availableText) {
+    // Extract date from text like "Available:\n                    6/18/2025\n                "
+    const dateMatch = /(\d{1,2}\/\d{1,2}\/\d{4})/.exec(availableText);
+    if (dateMatch?.[1]) {
+      const dateStr = dateMatch[1];
+      // Parse M/D/YYYY format and convert to ISO string
+      const parsedDate = new Date(dateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        availableDate = parsedDate.toISOString();
+      }
     }
-    return acc;
-  }, []);
+  }
 
-  return result.join("").trim();
+  return { color, vin, stockNumber, yardLocation, availableDate };
 }
 
 /**
@@ -320,7 +306,8 @@ function normalizeWhitespace(text: string): string {
 function parseVehicleTitle(
   ymmText: string,
 ): { year: number; make: string; model: string } | null {
-  const normalizedText = normalizeWhitespace(ymmText.trim());
+  // Replace multiple whitespace with single spaces
+  const normalizedText = ymmText.trim().replace(/\s+/g, " ");
 
   if (!normalizedText) return null;
 
@@ -378,21 +365,9 @@ function parseVehicleElement(
 
     const { year, make, model } = titleData;
 
-    // Extract vehicle details
-    const { color, vin, stockNumber, yardLocation } =
+    // Extract vehicle details (including available date)
+    const { color, vin, stockNumber, yardLocation, availableDate } =
       parseVehicleDetails($element);
-
-    // Extract available date
-    const detailItems = $element.find(".pypvi_detailItem");
-    const availableItem = Array.from(detailItems).find((item) => {
-      const $item = cheerio.load(item);
-      return $item.text().includes("Available:");
-    });
-
-    const availableDate = availableItem
-      ? (cheerio.load(availableItem)("time").attr("datetime") ??
-        new Date().toISOString())
-      : new Date().toISOString();
 
     // Extract images
     const images = parseVehicleImagesCheerio($element);
