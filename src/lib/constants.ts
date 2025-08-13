@@ -1,6 +1,7 @@
 // Search configuration
 export const SEARCH_CONFIG = {
   DEBOUNCE_DELAY: 300,
+  MIN_QUERY_LENGTH: 2,
   MAX_CONCURRENT_REQUESTS: 5,
   REQUEST_TIMEOUT: 15000,
   REQUEST_DELAY: 500,
@@ -20,4 +21,5 @@ export const API_ENDPOINTS = {
 // Error messages
 export const ERROR_MESSAGES = {
   SEARCH_FAILED: "Search failed. Please try again.",
+  QUERY_TOO_SHORT: "Please enter at least {minLength} characters to search.",
 } as const;

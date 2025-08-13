@@ -1,36 +1,91 @@
-import { Suspense } from "react";
-import { Search } from "lucide-react";
-import { Skeleton } from "~/components/ui/skeleton";
-import { SearchForm } from "~/components/search/SearchForm";
-import { YearFilterWrapper } from "~/components/search/YearFilterWrapper";
+"use client";
+
+import { AlertCircle, Search } from "lucide-react";
+import { useQueryState } from "nuqs";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
+import { SearchInput } from "~/components/search/SearchInput";
+import { SearchResults } from "~/components/search/SearchResults";
+import { YearFilter } from "~/components/search/YearFilter";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Skeleton } from "~/components/ui/skeleton";
+import { ERROR_MESSAGES, SEARCH_CONFIG } from "~/lib/constants";
+import { filterVehiclesByYear } from "~/lib/utils";
+import { api } from "~/trpc/react";
 
-// Import the streaming results component
-import { StreamingSearchResults } from "~/components/search/StreamingSearchResults";
-import { api } from "~/trpc/server";
-
-export default async function SearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; minYear?: string; maxYear?: string }>;
-}) {
-  const resolvedParams = await searchParams;
-  const searchQuery = resolvedParams.q?.trim() ?? "";
+function SearchPageContent() {
+  // URL state for search query
+  const [query, setQuery] = useQueryState("q", { defaultValue: "" });
+  
+  // Local state for year filter
   const currentYear = new Date().getFullYear();
-  
-  // Get dynamic year range based on search results
-  let yearRange = { minYear: 1990, maxYear: currentYear };
-  if (searchQuery) {
-    try {
-      yearRange = await api.vehicles.getYearRange({ searchQuery });
-    } catch (error) {
-      console.error("Error fetching year range:", error);
-      // Fall back to default range
+  const [yearRange, setYearRange] = useState<[number, number]>([1990, currentYear]);
+
+  // Debounced query for API calls
+  const [debouncedQuery] = useDebounce(query, SEARCH_CONFIG.DEBOUNCE_DELAY);
+
+  // Search results from tRPC
+  const { data: searchResults, isLoading: searchLoading } = api.vehicles.search.useQuery(
+    { query: debouncedQuery },
+    { 
+      enabled: debouncedQuery.trim().length >= SEARCH_CONFIG.MIN_QUERY_LENGTH,
+      staleTime: 30000, // Cache results for 30 seconds
     }
-  }
+  );
+
+  // Filter vehicles by year range
+  const filteredVehicles = useMemo(() => {
+    if (!searchResults?.vehicles) return [];
+    return filterVehiclesByYear(searchResults.vehicles, yearRange);
+  }, [searchResults?.vehicles, yearRange]);
+
+  // Prepare search result data
+  const searchResult = useMemo(() => {
+    if (!searchResults) {
+      return {
+        vehicles: [],
+        totalCount: 0,
+        page: 1,
+        hasMore: false,
+        locationsCovered: 0,
+        searchTime: 0,
+        locationsWithErrors: [],
+      };
+    }
+
+    return {
+      vehicles: filteredVehicles,
+      totalCount: filteredVehicles.length,
+      page: 1,
+      hasMore: false,
+      locationsCovered: searchResults.locationsCovered,
+      searchTime: searchResults.searchTime,
+      locationsWithErrors: searchResults.locationsWithErrors,
+    };
+  }, [filteredVehicles, searchResults]);
+
+  // Show empty state when no query
+  const showEmptyState = !query.trim();
   
-  const minYear = resolvedParams.minYear ? parseInt(resolvedParams.minYear) : yearRange.minYear;
-  const maxYear = resolvedParams.maxYear ? parseInt(resolvedParams.maxYear) : yearRange.maxYear;
+  // Show error state for very short queries
+  const showErrorState = query.trim().length > 0 && query.trim().length < SEARCH_CONFIG.MIN_QUERY_LENGTH;
+
+  // Handlers
+  const handleQueryChange = useCallback(
+    (newQuery: string) => {
+      void setQuery(newQuery);
+    },
+    [setQuery],
+  );
+
+  const handleSearch = useCallback(() => {
+    // Search is handled automatically by the debounced query
+  }, []);
+
+  const handleYearChange = useCallback((newRange: [number, number]) => {
+    setYearRange(newRange);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,26 +108,32 @@ export default async function SearchPage({
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Search Input */}
         <div className="mb-6">
-          <SearchForm defaultValue={searchQuery} />
+          <SearchInput
+            value={query}
+            onChange={handleQueryChange}
+            onSearch={handleSearch}
+            placeholder="Enter year, make, model (e.g., '2018 Honda Civic' or 'Toyota')"
+            isLoading={searchLoading}
+          />
         </div>
 
-        {/* Year Filter - Only show when we have a query */}
-        {searchQuery && (
+        {/* Year Filter - Only show when we have results */}
+        {!showEmptyState && !showErrorState && searchResults && (
           <div className="mb-8">
             <div className="mx-auto max-w-md rounded-lg border bg-white p-4 shadow-sm">
-              <YearFilterWrapper 
-                searchQuery={searchQuery}
-                defaultMinYear={minYear}
-                defaultMaxYear={maxYear}
-                dataMinYear={yearRange.minYear}
-                dataMaxYear={yearRange.maxYear}
+              <YearFilter
+                yearRange={yearRange}
+                onYearChange={handleYearChange}
+                minYear={1990}
+                maxYear={currentYear}
+                isLoading={searchLoading}
               />
             </div>
           </div>
         )}
 
         {/* Empty State */}
-        {!searchQuery && (
+        {showEmptyState && (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
               <Search className="h-12 w-12 text-gray-400" />
@@ -87,8 +148,22 @@ export default async function SearchPage({
           </div>
         )}
 
-        {/* Streaming Search Results */}
-        {searchQuery && (
+        {/* Error State */}
+        {showErrorState && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Query too short</AlertTitle>
+            <AlertDescription>
+              {ERROR_MESSAGES.QUERY_TOO_SHORT.replace(
+                "{minLength}",
+                SEARCH_CONFIG.MIN_QUERY_LENGTH.toString(),
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Search Results */}
+        {!showEmptyState && !showErrorState && (
           <ErrorBoundary>
             <Suspense
               fallback={
@@ -128,14 +203,29 @@ export default async function SearchPage({
                 </div>
               }
             >
-              <StreamingSearchResults
-                searchQuery={searchQuery}
-                yearRange={[minYear, maxYear]}
+              <SearchResults
+                searchResult={searchResult}
+                isLoading={searchLoading}
               />
             </Suspense>
           </ErrorBoundary>
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <span>Loading search...</span>
+        </div>
+      </div>
+    }>
+      <SearchPageContent />
+    </Suspense>
   );
 }
