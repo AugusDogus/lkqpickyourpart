@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Input } from "~/components/ui/input";
 import { Skeleton } from "~/components/ui/skeleton";
@@ -26,6 +26,7 @@ export function YearFilter({
   // Local state for input values to allow typing
   const [minInputValue, setMinInputValue] = useState(yearRange[0].toString());
   const [maxInputValue, setMaxInputValue] = useState(yearRange[1].toString());
+  const [isPending, startTransition] = useTransition();
 
   // Update local input values when yearRange prop changes (from slider)
   useMemo(() => {
@@ -33,13 +34,20 @@ export function YearFilter({
     setMaxInputValue(yearRange[1].toString());
   }, [yearRange]);
 
+  const emitYearChange = useCallback(
+    (range: [number, number]) => {
+      startTransition(() => onYearChange(range));
+    },
+    [onYearChange, startTransition],
+  );
+
   const handleSliderChange = useCallback(
     (values: number[]) => {
       if (values.length === 2) {
-        onYearChange([values[0]!, values[1]!]);
+        emitYearChange([values[0]!, values[1]!]);
       }
     },
-    [onYearChange],
+    [emitYearChange],
   );
 
   const handleMinYearChange = useCallback(
@@ -51,10 +59,10 @@ export function YearFilter({
       if (!isNaN(value) && value >= minYear && value <= maxYear) {
         // Ensure min doesn't exceed max
         const newMin = Math.min(value, yearRange[1]);
-        onYearChange([newMin, yearRange[1]]);
+        emitYearChange([newMin, yearRange[1]]);
       }
     },
-    [onYearChange, minYear, maxYear, yearRange],
+    [emitYearChange, minYear, maxYear, yearRange],
   );
 
   const handleMaxYearChange = useCallback(
@@ -66,10 +74,10 @@ export function YearFilter({
       if (!isNaN(value) && value >= minYear && value <= maxYear) {
         // Ensure max doesn't go below min
         const newMax = Math.max(value, yearRange[0]);
-        onYearChange([yearRange[0], newMax]);
+        emitYearChange([yearRange[0], newMax]);
       }
     },
-    [onYearChange, minYear, maxYear, yearRange],
+    [emitYearChange, minYear, maxYear, yearRange],
   );
 
   const handleMinYearBlur = useCallback(() => {
@@ -79,18 +87,18 @@ export function YearFilter({
       toast.error("Please enter a valid year");
     } else if (value < minYear) {
       setMinInputValue(minYear.toString());
-      onYearChange([minYear, yearRange[1]]);
+      emitYearChange([minYear, yearRange[1]]);
       toast.info(`Snapped to minimum year ${minYear}`);
     } else if (value > maxYear) {
       setMinInputValue(maxYear.toString());
-      onYearChange([maxYear, yearRange[1]]);
+      emitYearChange([maxYear, yearRange[1]]);
       toast.info(`Snapped to maximum year ${maxYear}`);
     } else if (value > yearRange[1]) {
       setMinInputValue(yearRange[1].toString());
-      onYearChange([yearRange[1], yearRange[1]]);
+      emitYearChange([yearRange[1], yearRange[1]]);
       toast.info(`Min year cannot exceed max year (${yearRange[1]})`);
     }
-  }, [minInputValue, minYear, maxYear, yearRange, onYearChange]);
+  }, [minInputValue, minYear, maxYear, yearRange, emitYearChange]);
 
   const handleMaxYearBlur = useCallback(() => {
     const value = parseInt(maxInputValue);
@@ -99,18 +107,18 @@ export function YearFilter({
       toast.error("Please enter a valid year");
     } else if (value < minYear) {
       setMaxInputValue(minYear.toString());
-      onYearChange([yearRange[0], minYear]);
+      emitYearChange([yearRange[0], minYear]);
       toast.info(`Snapped to minimum year ${minYear}`);
     } else if (value > maxYear) {
       setMaxInputValue(maxYear.toString());
-      onYearChange([yearRange[0], maxYear]);
+      emitYearChange([yearRange[0], maxYear]);
       toast.info(`Snapped to maximum year ${maxYear}`);
     } else if (value < yearRange[0]) {
       setMaxInputValue(yearRange[0].toString());
-      onYearChange([yearRange[0], yearRange[0]]);
+      emitYearChange([yearRange[0], yearRange[0]]);
       toast.info(`Max year cannot be less than min year (${yearRange[0]})`);
     }
-  }, [maxInputValue, minYear, maxYear, yearRange, onYearChange]);
+  }, [maxInputValue, minYear, maxYear, yearRange, emitYearChange]);
 
   const handleMinYearKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -121,20 +129,20 @@ export function YearFilter({
           toast.error("Please enter a valid year");
         } else if (value < minYear) {
           setMinInputValue(minYear.toString());
-          onYearChange([minYear, yearRange[1]]);
+          emitYearChange([minYear, yearRange[1]]);
           toast.info(`Snapped to minimum year ${minYear}`);
         } else if (value > maxYear) {
           setMinInputValue(maxYear.toString());
-          onYearChange([maxYear, yearRange[1]]);
+          emitYearChange([maxYear, yearRange[1]]);
           toast.info(`Snapped to maximum year ${maxYear}`);
         } else if (value > yearRange[1]) {
           setMinInputValue(yearRange[1].toString());
-          onYearChange([yearRange[1], yearRange[1]]);
+          emitYearChange([yearRange[1], yearRange[1]]);
           toast.info(`Min year cannot exceed max year (${yearRange[1]})`);
         }
       }
     },
-    [minInputValue, minYear, maxYear, yearRange, onYearChange],
+    [minInputValue, minYear, maxYear, yearRange, emitYearChange],
   );
 
   const handleMaxYearKeyDown = useCallback(
@@ -146,20 +154,20 @@ export function YearFilter({
           toast.error("Please enter a valid year");
         } else if (value < minYear) {
           setMaxInputValue(minYear.toString());
-          onYearChange([yearRange[0], minYear]);
+          emitYearChange([yearRange[0], minYear]);
           toast.info(`Snapped to minimum year ${minYear}`);
         } else if (value > maxYear) {
           setMaxInputValue(maxYear.toString());
-          onYearChange([yearRange[0], maxYear]);
+          emitYearChange([yearRange[0], maxYear]);
           toast.info(`Snapped to maximum year ${maxYear}`);
         } else if (value < yearRange[0]) {
           setMaxInputValue(yearRange[0].toString());
-          onYearChange([yearRange[0], yearRange[0]]);
+          emitYearChange([yearRange[0], yearRange[0]]);
           toast.info(`Max year cannot be less than min year (${yearRange[0]})`);
         }
       }
     },
-    [maxInputValue, minYear, maxYear, yearRange, onYearChange],
+    [maxInputValue, minYear, maxYear, yearRange, emitYearChange],
   );
 
   const formatYearRange = useMemo(() => {

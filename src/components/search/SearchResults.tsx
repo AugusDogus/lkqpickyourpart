@@ -9,6 +9,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import type { SearchResult } from "~/lib/types";
 import { VehicleCard } from "./VehicleCard";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 interface SearchResultsProps {
   searchResult: SearchResult;
@@ -47,11 +48,35 @@ export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
     );
   }
 
+  // Defer large result lists to keep typing responsive
+  const deferredResult = useDeferredValue(searchResult);
+
+  // Progressive reveal: show a small chunk first, then expand in idle time
+  const [visibleCount, setVisibleCount] = useState(12);
+  const vehicles = deferredResult.vehicles;
+  const visibleVehicles = useMemo(
+    () => vehicles.slice(0, visibleCount),
+    [vehicles, visibleCount],
+  );
+
+  useEffect(() => {
+    // Reset when results change
+    setVisibleCount(12);
+  }, [vehicles]);
+
+  useEffect(() => {
+    if (visibleCount >= vehicles.length) return;
+    const id = window.setTimeout(() => {
+      setVisibleCount((c) => Math.min(c + 12, vehicles.length));
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [visibleCount, vehicles.length]);
+
   return (
     <div className="space-y-6">
       {/* Results Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {searchResult.vehicles.map((vehicle) => (
+        {visibleVehicles.map((vehicle) => (
           <VehicleCard
             key={`${vehicle.location.locationCode}-${vehicle.id}`}
             vehicle={vehicle}
@@ -62,17 +87,16 @@ export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
       {/* Search Summary */}
       <div className="text-muted-foreground border-t pt-6 text-center text-sm">
         <p>
-          Showing {searchResult.vehicles.length} of{" "}
-          {searchResult.totalCount.toLocaleString()} vehicles
-          {searchResult.locationsCovered > 0 && (
+          Showing {visibleVehicles.length} of {deferredResult.totalCount.toLocaleString()} vehicles
+          {deferredResult.locationsCovered > 0 && (
             <span className="ml-1">
-              from {searchResult.locationsCovered} locations
+              from {deferredResult.locationsCovered} locations
             </span>
           )}
         </p>
-        {searchResult.locationsWithErrors.length > 0 && (
+        {deferredResult.locationsWithErrors.length > 0 && (
           <p className="text-destructive mt-1 text-xs">
-            {searchResult.locationsWithErrors.length} locations had errors
+            {deferredResult.locationsWithErrors.length} locations had errors
           </p>
         )}
       </div>

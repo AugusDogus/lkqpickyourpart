@@ -2,8 +2,9 @@
 
 import { AlertCircle, Search } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, useTransition, useDeferredValue } from "react";
 import { useDebounce } from "use-debounce";
+import { keepPreviousData } from "@tanstack/react-query";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { SearchInput } from "~/components/search/SearchInput";
 import { SearchResults } from "~/components/search/SearchResults";
@@ -40,6 +41,8 @@ function SearchPageContent() {
     minYearParam !== null || maxYearParam !== null,
   );
 
+  const [isTransitioning, startTransition] = useTransition();
+
   // Debounce the query for search API calls
   const [debouncedQuery] = useDebounce(query, SEARCH_CONFIG.DEBOUNCE_DELAY);
 
@@ -63,6 +66,8 @@ function SearchPageContent() {
       enabled: debouncedQuery.length > 0,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
+      placeholderData: keepPreviousData,
+      staleTime: 30000,
     },
   );
 
@@ -87,9 +92,11 @@ function SearchPageContent() {
 
   const handleQueryChange = useCallback(
     (newQuery: string) => {
-      void setQuery(newQuery);
+      startTransition(() => {
+        void setQuery(newQuery);
+      });
     },
-    [setQuery],
+    [setQuery, startTransition],
   );
 
   const handleYearChange = useCallback((newRange: [number, number]) => {
@@ -98,12 +105,12 @@ function SearchPageContent() {
   }, []);
 
   // Sync local state when URL parameters change (e.g., browser back/forward)
-  useMemo(() => {
+  useEffect(() => {
     setYearRange([minYearParam ?? dataMinYear, maxYearParam ?? dataMaxYear]);
   }, [minYearParam, maxYearParam, dataMinYear, dataMaxYear]);
 
   // Update URL parameters with debounced year range (only if user has manually changed it)
-  useMemo(() => {
+  useEffect(() => {
     if (hasUserChangedRange) {
       const [min, max] = debouncedYearRangeForURL;
 
@@ -113,8 +120,10 @@ function SearchPageContent() {
         void setMaxYearParam(null);
         // Don't reset hasUserChangedRange - keep it true so future changes still update URL
       } else {
-        void setMinYearParam(min);
-        void setMaxYearParam(max);
+        startTransition(() => {
+          void setMinYearParam(min);
+          void setMaxYearParam(max);
+        });
       }
     }
   }, [
@@ -124,10 +133,11 @@ function SearchPageContent() {
     dataMaxYear,
     setMinYearParam,
     setMaxYearParam,
+    startTransition,
   ]);
 
   // Update year range when search results change (but only if URL params are null - no custom range)
-  useMemo(() => {
+  useEffect(() => {
     if (searchResults?.vehicles && searchResults.vehicles.length > 0) {
       // Only auto-update if user hasn't set custom range in URL
       const hasNoCustomRange = minYearParam === null && maxYearParam === null;
@@ -144,28 +154,30 @@ function SearchPageContent() {
     maxYearParam,
   ]);
 
-  // Filter vehicles based on debounced year range for performance
-  const filteredVehicles = useMemo(() => {
-    if (!searchResults?.vehicles) return [];
+  // Defer heavy values to keep input responsive
+  const deferredSearchResults = useDeferredValue(searchResults);
+  const deferredYearRange = useDeferredValue(debouncedYearRange);
 
-    return searchResults.vehicles.filter((vehicle: Vehicle) => {
-      return (
-        vehicle.year >= debouncedYearRange[0] &&
-        vehicle.year <= debouncedYearRange[1]
-      );
+  // Filter vehicles based on deferred year range for performance
+  const filteredVehicles = useMemo(() => {
+    if (!deferredSearchResults?.vehicles) return [];
+    const [min, max] = deferredYearRange;
+
+    return deferredSearchResults.vehicles.filter((vehicle: Vehicle) => {
+      return vehicle.year >= min && vehicle.year <= max;
     });
-  }, [searchResults?.vehicles, debouncedYearRange]);
+  }, [deferredSearchResults?.vehicles, deferredYearRange]);
 
   // Create filtered search result
   const filteredSearchResult = useMemo(() => {
-    if (!searchResults) return null;
+    if (!deferredSearchResults) return null;
 
     return {
-      ...searchResults,
+      ...deferredSearchResults,
       vehicles: filteredVehicles,
       totalCount: filteredVehicles.length,
     };
-  }, [searchResults, filteredVehicles]);
+  }, [deferredSearchResults, filteredVehicles]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -193,7 +205,7 @@ function SearchPageContent() {
             onChange={handleQueryChange}
             onSearch={handleSearch}
             placeholder="Enter year, make, model (e.g., '2018 Honda Civic' or 'Toyota')"
-            isLoading={searchLoading}
+            isLoading={searchLoading || isTransitioning}
           />
         </div>
 
