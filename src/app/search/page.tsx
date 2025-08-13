@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Search } from "lucide-react";
 import { Skeleton } from "~/components/ui/skeleton";
 import { SearchForm } from "~/components/search/SearchForm";
-import { YearFilterForm } from "~/components/search/YearFilterForm";
+import { YearFilterWrapper } from "~/components/search/YearFilterWrapper";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 
 // Import the streaming results component
@@ -46,7 +46,7 @@ export default async function SearchPage({
         {searchQuery && (
           <div className="mb-8">
             <div className="mx-auto max-w-md rounded-lg border bg-white p-4 shadow-sm">
-              <YearFilterForm 
+              <YearFilterWrapper 
                 searchQuery={searchQuery}
                 defaultMinYear={minYear}
                 defaultMaxYear={maxYear}
