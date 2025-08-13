@@ -26,7 +26,7 @@ export function YearFilter({
   // Local state for input values to allow typing
   const [minInputValue, setMinInputValue] = useState(yearRange[0].toString());
   const [maxInputValue, setMaxInputValue] = useState(yearRange[1].toString());
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   // Update local input values when yearRange prop changes (from slider)
   useMemo(() => {
