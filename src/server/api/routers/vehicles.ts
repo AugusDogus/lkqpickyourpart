@@ -15,8 +15,7 @@ import type {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { locationsRouter } from "./locations";
 
-// Type for cheerio selection - extract from vehicleRows type
-type CheerioSelection = ReturnType<ReturnType<typeof cheerio.load>>;
+
 
 // Schema for search filters
 const searchFiltersSchema = z.object({
@@ -176,149 +175,55 @@ export function clearVehicleCache(): void {
 }
 
 /**
- * Parses vehicle inventory HTML to extract vehicle data using Cheerio
+ * Helper function to extract text after a label
  */
-function parseVehicleInventoryHTML(
-  html: string,
-  location: Location,
-): ParsedVehicleData[] {
-  const vehicles: ParsedVehicleData[] = [];
+function extractAfterLabel(text: string, label: string): string {
+  const index = text.indexOf(label);
+  if (index === -1) return '';
+  return text
+    .substring(index + label.length)
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
+/**
+ * Helper function to extract first word after a label
+ */
+function extractWordAfterLabel(text: string, label: string): string {
+  const afterLabel = extractAfterLabel(text, label);
+  return afterLabel.split(' ')[0] || '';
+}
+
+/**
+ * Determine image type from URL
+ */
+function getImageType(url: string): VehicleImage["type"] {
+  if (url.includes("CAR-FRONT-LEFT")) return "CAR-FRONT-LEFT";
+  if (url.includes("CAR-BACK-LEFT")) return "CAR-BACK-LEFT";
+  if (url.includes("CAR-BACK-RIGHT")) return "CAR-BACK-RIGHT";
+  if (url.includes("CAR-FRONT-RIGHT")) return "CAR-FRONT-RIGHT";
+  if (url.includes("CAR-BACK")) return "CAR-BACK";
+  if (url.includes("CAR-FRONT")) return "CAR-FRONT";
+  if (url.includes("CAR-LEFT")) return "CAR-LEFT";
+  if (url.includes("CAR-RIGHT")) return "CAR-RIGHT";
+  if (url.includes("ENGINE")) return "ENGINE";
+  if (url.includes("INTERIOR")) return "INTERIOR";
+  return "OTHER";
+}
+
+/**
+ * Remove crop parameters from image URL
+ */
+function removeCropParameters(url: string): string {
   try {
-    const $ = cheerio.load(html);
-    const vehicleRows = $(".pypvi_resultRow");
-
-    vehicleRows.each((index, element) => {
-      const vehicleId = $(element).attr("id");
-      if (!vehicleId) {
-        return;
-      }
-
-      const vehicle = parseVehicleElement($(element), vehicleId, location);
-      if (vehicle) {
-        vehicles.push(vehicle);
-      }
-    });
-  } catch (error) {
-    console.error("Error parsing vehicle inventory HTML:", error);
+    const urlObj = new URL(url);
+    urlObj.searchParams.delete("w");
+    urlObj.searchParams.delete("h");
+    urlObj.searchParams.delete("mode");
+    return urlObj.toString();
+  } catch {
+    return url;
   }
-
-  return vehicles;
-}
-
-/**
- * Extract field value by removing the label and trimming whitespace
- */
-function extractFieldValue(text: string, label: string): string {
-  return text.replace(label, "").trim();
-}
-
-/**
- * Split text on multiple consecutive spaces (2 or more)
- */
-function splitOnMultipleSpaces(text: string): string[] {
-  return text.split("  ").filter((part) => part.trim().length > 0);
-}
-
-/**
- * Parse yard location from a text containing section, row, and space information
- */
-function parseYardLocation(text: string): {
-  section: string;
-  row: string;
-  space: string;
-} {
-  const locationParts = splitOnMultipleSpaces(text);
-
-  const section =
-    locationParts
-      .find((part) => part.includes("Section:"))
-      ?.replace("Section:", "")
-      .trim() ?? "";
-
-  const row =
-    locationParts
-      .find((part) => part.includes("Row:"))
-      ?.replace("Row:", "")
-      .trim() ?? "";
-
-  const space =
-    locationParts
-      .find((part) => part.includes("Space:"))
-      ?.replace("Space:", "")
-      .trim() ?? "";
-
-  return { section, row, space };
-}
-
-/**
- * Parse vehicle details from detail items
- */
-function parseVehicleDetails($element: CheerioSelection): {
-  color: string;
-  vin: string;
-  stockNumber: string;
-  yardLocation: { section: string; row: string; space: string };
-  availableDate: string;
-} {
-  const detailItems = $element.find(".pypvi_detailItem");
-  const details = Array.from(detailItems).map((item) =>
-    cheerio.load(item).text(),
-  );
-
-  const colorText = details.find((text) => text.includes("Color:"));
-  const color = colorText ? extractFieldValue(colorText, "Color:") : "Unknown";
-
-  const vinText = details.find((text) => text.includes("VIN:"));
-  const vin = vinText ? extractFieldValue(vinText, "VIN:") : "";
-
-  const stockText = details.find((text) => text.includes("Stock #:"));
-  const stockNumber = stockText ? extractFieldValue(stockText, "Stock #:") : "";
-
-  const locationText = details.find((text) => text.includes("Section:"));
-  const yardLocation = locationText
-    ? parseYardLocation(locationText)
-    : { section: "", row: "", space: "" };
-
-  // Parse available date
-  const availableText = details.find((text) => text.includes("Available:"));
-  let availableDate = new Date().toISOString();
-
-  if (availableText) {
-    // Extract date from text like "Available:\n                    6/18/2025\n                "
-    const dateMatch = /(\d{1,2}\/\d{1,2}\/\d{4})/.exec(availableText);
-    if (dateMatch?.[1]) {
-      const dateStr = dateMatch[1];
-      // Parse M/D/YYYY format and convert to ISO string
-      const parsedDate = new Date(dateStr);
-      if (!isNaN(parsedDate.getTime())) {
-        availableDate = parsedDate.toISOString();
-      }
-    }
-  }
-
-  return { color, vin, stockNumber, yardLocation, availableDate };
-}
-
-/**
- * Parse year, make, model from vehicle title
- */
-function parseVehicleTitle(
-  ymmText: string,
-): { year: number; make: string; model: string } | null {
-  // Replace multiple whitespace with single spaces
-  const normalizedText = ymmText.trim().replace(/\s+/g, " ");
-
-  if (!normalizedText) return null;
-
-  const ymmParts = normalizedText.split(" ");
-  if (ymmParts.length < 3) return null;
-
-  return {
-    year: parseInt(ymmParts[0] ?? "0"),
-    make: ymmParts[1] ?? "",
-    model: ymmParts.slice(2).join(" "),
-  };
 }
 
 /**
@@ -347,138 +252,140 @@ function generateVehicleUrls(
 }
 
 /**
- * Parse individual vehicle element using Cheerio
+ * Parses vehicle inventory HTML to extract vehicle data using simplified Cheerio parsing
  */
-function parseVehicleElement(
-  $element: CheerioSelection,
-  vehicleId: string,
+function parseVehicleInventoryHTML(
+  html: string,
   location: Location,
-): ParsedVehicleData | null {
+): ParsedVehicleData[] {
+  const vehicles: ParsedVehicleData[] = [];
+
   try {
-    // Extract year, make, model from the pypvi_ymm link
-    const ymmLink = $element.find(".pypvi_ymm");
-    if (ymmLink.length === 0) return null;
+    const $ = cheerio.load(html);
+    const base = new URL(API_ENDPOINTS.LKQ_BASE);
 
-    const ymmText = ymmLink.text();
-    const titleData = parseVehicleTitle(ymmText);
-    if (!titleData) return null;
+    $('.pypvi_resultRow[id]').each((_, el) => {
+      try {
+        const id = $(el).attr('id');
+        if (!id) return;
 
-    const { year, make, model } = titleData;
+        // Main image
+        const mainImageHref = $(el).find('a.fancybox-thumb.pypvi_image').attr('href') || '';
+        const mainImageUrl = mainImageHref ? new URL(mainImageHref, base).toString() : '';
 
-    // Extract vehicle details (including available date)
-    const { color, vin, stockNumber, yardLocation, availableDate } =
-      parseVehicleDetails($element);
+        // Thumbnails
+        const thumbnails = $(el)
+          .find('.pypvi_images a[data-fancybox]')
+          .map((_, a) => {
+            const href = $(a).attr('href');
+            return href ? new URL(href, base).toString() : '';
+          })
+          .get()
+          .filter(url => url !== '');
 
-    // Extract images
-    const images = parseVehicleImagesCheerio($element);
+        // Combine main image and thumbnails into VehicleImage array
+        const images: VehicleImage[] = [];
+        
+        if (mainImageUrl) {
+          images.push({
+            url: removeCropParameters(mainImageUrl),
+            thumbnailUrl: mainImageUrl,
+            type: getImageType(mainImageUrl),
+          });
+        }
 
-    // Generate URLs
-    const { detailsUrl, partsUrl, pricesUrl } = generateVehicleUrls(
-      year,
-      make,
-      model,
-      location,
-    );
+        thumbnails.forEach(thumbnailUrl => {
+          images.push({
+            url: removeCropParameters(thumbnailUrl),
+            thumbnailUrl,
+            type: getImageType(thumbnailUrl),
+          });
+        });
 
-    return {
-      id: vehicleId,
-      year,
-      make,
-      model,
-      color,
-      vin,
-      stockNumber,
-      availableDate,
-      yardLocation,
-      images,
-      detailsUrl,
-      partsUrl,
-      pricesUrl,
-    };
+        // Year, Make, Model
+        const ymmText = $(el).find('.pypvi_ymm').text().trim();
+        const normalizedYmm = ymmText.replace(/\s+/g, ' ').trim();
+        const [yearStr = '', make = '', ...modelParts] = normalizedYmm.split(' ');
+        const model = modelParts.join(' ');
+        const year = parseInt(yearStr) || 0;
+
+        // Details
+        const colorText = $(el).find(".pypvi_detailItem:contains('Color:')").text();
+        const color = extractAfterLabel(colorText, 'Color:');
+
+        const vinText = $(el).find(".pypvi_detailItem:contains('VIN:')").text();
+        const vin = extractAfterLabel(vinText, 'VIN:');
+
+        const sectionText = $(el).find(".pypvi_detailItem:contains('Section:')").text();
+        const section = extractWordAfterLabel(sectionText, 'Section:');
+
+        const rowText = $(el).find(".pypvi_detailItem:contains('Row:')").text();
+        const row = extractWordAfterLabel(rowText, 'Row:');
+
+        const spaceText = $(el).find(".pypvi_detailItem:contains('Space:')").text();
+        const space = extractWordAfterLabel(spaceText, 'Space:');
+
+        const stockText = $(el).find(".pypvi_detailItem:contains('Stock #:')").text();
+        const stockNumber = extractAfterLabel(stockText, 'Stock #:');
+
+        // Available date
+        let availableDate = new Date().toISOString();
+        const datetimeAttr = $(el).find('time[datetime]').attr('datetime');
+        if (datetimeAttr) {
+          const parsedDate = new Date(datetimeAttr);
+          if (!isNaN(parsedDate.getTime())) {
+            availableDate = parsedDate.toISOString();
+          }
+        } else {
+          const availableText = $(el).find(".pypvi_detailItem:contains('Available:')").text();
+          const availableRaw = extractAfterLabel(availableText, 'Available:');
+          if (availableRaw) {
+            const dateMatch = /(\d{1,2}\/\d{1,2}\/\d{4})/.exec(availableRaw);
+            if (dateMatch?.[1]) {
+              const parsedDate = new Date(dateMatch[1]);
+              if (!isNaN(parsedDate.getTime())) {
+                availableDate = parsedDate.toISOString();
+              }
+            }
+          }
+        }
+
+        // Generate URLs
+        const { detailsUrl, partsUrl, pricesUrl } = generateVehicleUrls(
+          year,
+          make,
+          model,
+          location,
+        );
+
+        vehicles.push({
+          id,
+          year,
+          make,
+          model,
+          color,
+          vin,
+          stockNumber,
+          availableDate,
+          yardLocation: {
+            section,
+            row,
+            space,
+          },
+          images,
+          detailsUrl,
+          partsUrl,
+          pricesUrl,
+        });
+      } catch (error) {
+        console.error(`Error parsing vehicle element:`, error);
+      }
+    });
   } catch (error) {
-    console.error(`Error parsing vehicle element ${vehicleId}:`, error);
-    return null;
+    console.error("Error parsing vehicle inventory HTML:", error);
   }
-}
 
-/**
- * Remove crop parameters from image URL
- */
-function removeCropParameters(url: string): string {
-  const urlObj = new URL(url);
-  urlObj.searchParams.delete("w");
-  urlObj.searchParams.delete("h");
-  urlObj.searchParams.delete("mode");
-  return urlObj.toString();
-}
-
-/**
- * Parse main vehicle image
- */
-function parseMainImage($element: CheerioSelection): VehicleImage | null {
-  const mainImg = $element.find(".pypvi_image img");
-  if (mainImg.length === 0) return null;
-
-  const imgSrc = mainImg.attr("src");
-  if (!imgSrc) return null;
-
-  return {
-    url: removeCropParameters(imgSrc),
-    thumbnailUrl: imgSrc,
-    type: getImageType(imgSrc),
-  };
-}
-
-/**
- * Parse additional vehicle images from fancybox links
- */
-function parseAdditionalImages($element: CheerioSelection): VehicleImage[] {
-  const fancyboxLinks = $element.find("a[data-fancybox]");
-
-  return Array.from(fancyboxLinks)
-    .map((link) => {
-      const $link = cheerio.load(link);
-      const url = $link("a").attr("href");
-      const thumbnailUrl = $link("a").attr("data-thumb");
-
-      if (!url || !thumbnailUrl) return null;
-
-      return {
-        url,
-        thumbnailUrl,
-        type: getImageType(url),
-      };
-    })
-    .filter((image): image is VehicleImage => image !== null);
-}
-
-/**
- * Parse vehicle images using Cheerio
- */
-function parseVehicleImagesCheerio($element: CheerioSelection): VehicleImage[] {
-  const mainImage = parseMainImage($element);
-  const additionalImages = parseAdditionalImages($element);
-
-  return [mainImage, ...additionalImages].filter(
-    (image): image is VehicleImage => image !== null,
-  );
-}
-
-/**
- * Determine image type from URL
- */
-function getImageType(url: string): VehicleImage["type"] {
-  if (url.includes("CAR-FRONT-LEFT")) return "CAR-FRONT-LEFT";
-  if (url.includes("CAR-BACK-LEFT")) return "CAR-BACK-LEFT";
-  if (url.includes("CAR-BACK-RIGHT")) return "CAR-BACK-RIGHT";
-  if (url.includes("CAR-FRONT-RIGHT")) return "CAR-FRONT-RIGHT";
-  if (url.includes("CAR-BACK")) return "CAR-BACK";
-  if (url.includes("CAR-FRONT")) return "CAR-FRONT";
-  if (url.includes("CAR-LEFT")) return "CAR-LEFT";
-  if (url.includes("CAR-RIGHT")) return "CAR-RIGHT";
-  if (url.includes("ENGINE")) return "ENGINE";
-  if (url.includes("INTERIOR")) return "INTERIOR";
-  return "OTHER";
+  return vehicles;
 }
 
 /**
