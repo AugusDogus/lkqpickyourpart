@@ -191,7 +191,7 @@ function extractAfterLabel(text: string, label: string): string {
  */
 function extractWordAfterLabel(text: string, label: string): string {
   const afterLabel = extractAfterLabel(text, label);
-  return afterLabel.split(' ')[0] || '';
+  return afterLabel.split(' ')[0] ?? '';
 }
 
 /**
@@ -270,7 +270,7 @@ function parseVehicleInventoryHTML(
         if (!id) return;
 
         // Main image
-        const mainImageHref = $(el).find('a.fancybox-thumb.pypvi_image').attr('href') || '';
+        const mainImageHref = $(el).find('a.fancybox-thumb.pypvi_image').attr('href') ?? '';
         const mainImageUrl = mainImageHref ? new URL(mainImageHref, base).toString() : '';
 
         // Thumbnails
