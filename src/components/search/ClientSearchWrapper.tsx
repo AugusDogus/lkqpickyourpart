@@ -1,8 +1,9 @@
 "use client";
 
 import { AlertCircle, Search } from "lucide-react";
-import { useQueryState } from "nuqs";
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useMemo, useState, useEffect } from "react";
+import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { SearchInput } from "~/components/search/SearchInput";
 import { SearchResults } from "~/components/search/SearchResults";
@@ -30,13 +31,54 @@ export function ClientSearchWrapper({
   showEmptyState,
   showErrorState,
 }: ClientSearchWrapperProps) {
-  // URL state for search query - this provides search-on-type behavior
-  const [query, setQuery] = useQueryState("q", { defaultValue: defaultQuery });
+  const router = useRouter();
+  
+  // Local state for search query with debouncing
+  const [query, setQuery] = useState(defaultQuery);
+  const [debouncedQuery] = useDebounce(query, SEARCH_CONFIG.DEBOUNCE_DELAY);
 
   // Local state for year filter
   const [yearRange, setYearRange] = useState<[number, number]>(defaultYearRange);
 
-  // Apply year filtering to server-provided results
+  // When debounced query changes, navigate to update URL and trigger RSC
+  useEffect(() => {
+    if (debouncedQuery !== defaultQuery) {
+      const params = new URLSearchParams();
+      if (debouncedQuery.trim()) {
+        params.set('q', debouncedQuery.trim());
+      }
+      if (yearRange[0] !== 1990) {
+        params.set('minYear', yearRange[0].toString());
+      }
+      if (yearRange[1] !== currentYear) {
+        params.set('maxYear', yearRange[1].toString());
+      }
+      
+      const newUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
+      router.push(newUrl);
+    }
+  }, [debouncedQuery, defaultQuery, yearRange, currentYear, router]);
+
+  // When year range changes, navigate to update URL and trigger RSC
+  const handleYearChange = useCallback((newRange: [number, number]) => {
+    setYearRange(newRange);
+    
+    const params = new URLSearchParams();
+    if (query.trim()) {
+      params.set('q', query.trim());
+    }
+    if (newRange[0] !== 1990) {
+      params.set('minYear', newRange[0].toString());
+    }
+    if (newRange[1] !== currentYear) {
+      params.set('maxYear', newRange[1].toString());
+    }
+    
+    const newUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(newUrl);
+  }, [query, currentYear, router]);
+
+  // Apply year filtering to server-provided results (for immediate feedback)
   const filteredVehicles = useMemo(() => {
     if (!searchResults?.vehicles) return [];
     return filterVehiclesByYear(searchResults.vehicles, yearRange);
@@ -66,18 +108,30 @@ export function ClientSearchWrapper({
   // Handlers for existing components
   const handleQueryChange = useCallback(
     (newQuery: string) => {
-      void setQuery(newQuery);
+      setQuery(newQuery);
     },
-    [setQuery],
+    [],
   );
 
   const handleSearch = useCallback(() => {
-    // Search is handled automatically by URL state changes
-  }, []);
+    // Trigger immediate search by navigating
+    const params = new URLSearchParams();
+    if (query.trim()) {
+      params.set('q', query.trim());
+    }
+    if (yearRange[0] !== 1990) {
+      params.set('minYear', yearRange[0].toString());
+    }
+    if (yearRange[1] !== currentYear) {
+      params.set('maxYear', yearRange[1].toString());
+    }
+    
+    const newUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(newUrl);
+  }, [query, yearRange, currentYear, router]);
 
-  const handleYearChange = useCallback((newRange: [number, number]) => {
-    setYearRange(newRange);
-  }, []);
+  // Show loading state when query has changed but we haven't navigated yet
+  const isSearching = debouncedQuery !== defaultQuery || query !== defaultQuery;
 
   return (
     <>
@@ -88,7 +142,7 @@ export function ClientSearchWrapper({
           onChange={handleQueryChange}
           onSearch={handleSearch}
           placeholder="Enter year, make, model (e.g., '2018 Honda Civic' or 'Toyota')"
-          isLoading={false}
+          isLoading={isSearching}
         />
       </div>
 
@@ -101,7 +155,7 @@ export function ClientSearchWrapper({
               onYearChange={handleYearChange}
               minYear={1990}
               maxYear={currentYear}
-              isLoading={false}
+              isLoading={isSearching}
             />
           </div>
         </div>
@@ -174,7 +228,7 @@ export function ClientSearchWrapper({
           >
             <SearchResults
               searchResult={finalSearchResult}
-              isLoading={false}
+              isLoading={isSearching}
             />
           </Suspense>
         </ErrorBoundary>
