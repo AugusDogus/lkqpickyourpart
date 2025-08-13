@@ -611,6 +611,59 @@ export const vehiclesRouter = createTRPCRouter({
     }),
 
   /**
+   * Get year range for search results across all locations
+   */
+  getYearRange: publicProcedure
+    .input(
+      z.object({
+        searchQuery: z.string(),
+      }),
+    )
+    .query(async ({ input }): Promise<{ minYear: number; maxYear: number }> => {
+      const currentYear = new Date().getFullYear();
+      
+      if (!input.searchQuery.trim()) {
+        return { minYear: 1990, maxYear: currentYear };
+      }
+
+      // Get all locations
+      const locations = await locationsRouter
+        .createCaller({ headers: new Headers() })
+        .getAll();
+
+      // Get vehicles from all locations in parallel (just years, not full data)
+      const locationPromises = locations.map(async (location) => {
+        try {
+          const vehicles = await fetchVehicleInventory(
+            location,
+            input.searchQuery,
+          );
+          return vehicles.map(v => v.year);
+        } catch (error) {
+          console.error(`Error getting year range from location ${location.locationCode}:`, error);
+          return [];
+        }
+      });
+
+      const locationResults = await Promise.allSettled(locationPromises);
+      
+      // Flatten all years from all locations
+      const allYears = locationResults
+        .filter((result): result is PromiseFulfilledResult<number[]> => result.status === 'fulfilled')
+        .flatMap(result => result.value)
+        .filter(year => year && year > 0);
+
+      if (allYears.length === 0) {
+        return { minYear: 1990, maxYear: currentYear };
+      }
+
+      return {
+        minYear: Math.min(...allYears),
+        maxYear: Math.max(...allYears),
+      };
+    }),
+
+  /**
    * Get vehicle by ID
    */
   getById: publicProcedure

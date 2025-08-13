@@ -9,14 +9,17 @@ export function YearFilterWrapper({
   searchQuery,
   defaultMinYear = 1990,
   defaultMaxYear = new Date().getFullYear(),
+  dataMinYear = 1990,
+  dataMaxYear = new Date().getFullYear(),
 }: {
   searchQuery: string;
   defaultMinYear?: number;
   defaultMaxYear?: number;
+  dataMinYear?: number;
+  dataMaxYear?: number;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const currentYear = new Date().getFullYear();
   
   const [yearRange, setYearRange] = useState<[number, number]>([
     defaultMinYear,
@@ -37,13 +40,13 @@ export function YearFilterWrapper({
     
     // Update year filters
     const [min, max] = debouncedYearRange;
-    if (min !== 1990) {
+    if (min !== dataMinYear) {
       params.set('minYear', min.toString());
     } else {
       params.delete('minYear');
     }
     
-    if (max !== currentYear) {
+    if (max !== dataMaxYear) {
       params.set('maxYear', max.toString());
     } else {
       params.delete('maxYear');
@@ -53,15 +56,15 @@ export function YearFilterWrapper({
     
     // Only push if the URL would actually change
     const currentParams = new URLSearchParams(window.location.search);
-    const currentMin = currentParams.get('minYear') ?? '1990';
-    const currentMax = currentParams.get('maxYear') ?? currentYear.toString();
-    const newMin = min === 1990 ? '1990' : min.toString();
-    const newMax = max === currentYear ? currentYear.toString() : max.toString();
+    const currentMin = currentParams.get('minYear') ?? dataMinYear.toString();
+    const currentMax = currentParams.get('maxYear') ?? dataMaxYear.toString();
+    const newMin = min === dataMinYear ? dataMinYear.toString() : min.toString();
+    const newMax = max === dataMaxYear ? dataMaxYear.toString() : max.toString();
     
     if (currentMin !== newMin || currentMax !== newMax) {
       router.push(newUrl);
     }
-  }, [debouncedYearRange, router, searchParams, searchQuery, currentYear]);
+  }, [debouncedYearRange, router, searchParams, searchQuery, dataMinYear, dataMaxYear]);
 
   const handleYearChange = useCallback((newRange: [number, number]) => {
     setYearRange(newRange);
@@ -71,8 +74,8 @@ export function YearFilterWrapper({
     <YearFilter
       yearRange={yearRange}
       onYearChange={handleYearChange}
-      minYear={1990}
-      maxYear={currentYear}
+      minYear={dataMinYear}
+      maxYear={dataMaxYear}
       isLoading={false}
     />
   );

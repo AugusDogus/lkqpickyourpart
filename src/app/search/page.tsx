@@ -7,6 +7,7 @@ import { ErrorBoundary } from "~/components/ErrorBoundary";
 
 // Import the streaming results component
 import { StreamingSearchResults } from "~/components/search/StreamingSearchResults";
+import { api } from "~/trpc/server";
 
 export default async function SearchPage({
   searchParams,
@@ -15,8 +16,21 @@ export default async function SearchPage({
 }) {
   const resolvedParams = await searchParams;
   const searchQuery = resolvedParams.q?.trim() ?? "";
-  const minYear = resolvedParams.minYear ? parseInt(resolvedParams.minYear) : 1990;
-  const maxYear = resolvedParams.maxYear ? parseInt(resolvedParams.maxYear) : new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
+  
+  // Get dynamic year range based on search results
+  let yearRange = { minYear: 1990, maxYear: currentYear };
+  if (searchQuery) {
+    try {
+      yearRange = await api.vehicles.getYearRange({ searchQuery });
+    } catch (error) {
+      console.error("Error fetching year range:", error);
+      // Fall back to default range
+    }
+  }
+  
+  const minYear = resolvedParams.minYear ? parseInt(resolvedParams.minYear) : yearRange.minYear;
+  const maxYear = resolvedParams.maxYear ? parseInt(resolvedParams.maxYear) : yearRange.maxYear;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,6 +64,8 @@ export default async function SearchPage({
                 searchQuery={searchQuery}
                 defaultMinYear={minYear}
                 defaultMaxYear={maxYear}
+                dataMinYear={yearRange.minYear}
+                dataMaxYear={yearRange.maxYear}
               />
             </div>
           </div>
