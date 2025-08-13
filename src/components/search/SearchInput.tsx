@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import type { SearchInputProps } from "~/lib/types";
 
@@ -10,7 +11,10 @@ export function SearchInput({
   onChange,
   onSearch,
   placeholder = "Enter year, make, model...",
-}: SearchInputProps) {
+  enableStreaming = false,
+}: SearchInputProps & { enableStreaming?: boolean }) {
+  const router = useRouter();
+
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
@@ -24,21 +28,33 @@ export function SearchInput({
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        onSearch();
+        if (enableStreaming && value.trim()) {
+          // Navigate to streaming results page
+          router.push(`/results?q=${encodeURIComponent(value.trim())}`);
+        } else {
+          onSearch();
+        }
       }
     },
-    [onSearch],
+    [onSearch, enableStreaming, value, router],
   );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       if (value.trim()) {
-        onSearch();
+        if (enableStreaming) {
+          // Navigate to streaming results page
+          router.push(`/results?q=${encodeURIComponent(value.trim())}`);
+        } else {
+          onSearch();
+        }
       }
     },
-    [onSearch, value],
+    [onSearch, value, enableStreaming, router],
   );
+
+  const resultsPath = enableStreaming ? "/results" : "/search";
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
@@ -62,19 +78,19 @@ export function SearchInput({
       <div className="text-muted-foreground mt-2 text-xs">
         <span>Try: </span>
         <Link
-          href="/search?q=Honda+Civic"
+          href={`${resultsPath}?q=Honda+Civic`}
           className="text-primary mr-3 underline hover:no-underline"
         >
           Honda Civic
         </Link>
         <Link
-          href="/search?q=2020+Toyota"
+          href={`${resultsPath}?q=2020+Toyota`}
           className="text-primary mr-3 underline hover:no-underline"
         >
           2020 Toyota
         </Link>
         <Link
-          href="/search?q=Ford+F-150"
+          href={`${resultsPath}?q=Ford+F-150`}
           className="text-primary underline hover:no-underline"
         >
           Ford F-150

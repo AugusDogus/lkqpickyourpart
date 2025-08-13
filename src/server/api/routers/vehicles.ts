@@ -480,6 +480,66 @@ function sortVehicles(
 
 export const vehiclesRouter = createTRPCRouter({
   /**
+   * Get all locations for streaming search
+   */
+  getLocations: publicProcedure.query(async () => {
+    const locations = await locationsRouter
+      .createCaller({ headers: new Headers() })
+      .getAll();
+    
+    return locations.map(location => ({
+      id: location.locationCode,
+      name: location.displayName,
+      locationCode: location.locationCode,
+    }));
+  }),
+
+  /**
+   * Get vehicles by specific location for streaming search
+   */
+  getByLocation: publicProcedure
+    .input(
+      z.object({
+        locationId: z.string(),
+        searchQuery: z.string(),
+      }),
+    )
+    .query(async ({ input }): Promise<Vehicle[]> => {
+      // Get the location details
+      const location = await locationsRouter
+        .createCaller({ headers: new Headers() })
+        .getByCode({
+          locationCode: input.locationId,
+        });
+
+      if (!location) {
+        return [];
+      }
+
+      try {
+        // Fetch vehicles for this specific location
+        const parsedVehicles = await fetchVehicleInventory(
+          location,
+          input.searchQuery,
+        );
+
+        return parsedVehicles.map(
+          (vehicle) =>
+            ({
+              ...vehicle,
+              location,
+            }) as Vehicle,
+        );
+      } catch (error) {
+        console.error(
+          `Error fetching vehicles from location ${input.locationId}:`,
+          error,
+        );
+        return [];
+      }
+    }),
+
+  /**
    * Global search across all LKQ locations
    */
   search: publicProcedure

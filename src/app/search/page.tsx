@@ -188,12 +188,21 @@ function SearchPageContent() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Search Input */}
         <div className="mb-6">
+          <div className="mb-4 rounded-lg bg-blue-50 border border-blue-200 p-4">
+            <div className="flex items-center space-x-2">
+              <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <p className="text-sm text-blue-800">
+                <strong>New:</strong> Try our streaming search! Results appear as each location finishes searching.
+              </p>
+            </div>
+          </div>
           <SearchInput
             value={query}
             onChange={handleQueryChange}
             onSearch={handleSearch}
             placeholder="Enter year, make, model (e.g., '2018 Honda Civic' or 'Toyota')"
             isLoading={searchLoading}
+            enableStreaming={true}
           />
         </div>
 
