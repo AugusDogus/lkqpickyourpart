@@ -1,91 +1,28 @@
-"use client";
-
-import { AlertCircle, Search } from "lucide-react";
-import { useQueryState } from "nuqs";
-import { Suspense, useCallback, useMemo, useState } from "react";
-import { useDebounce } from "use-debounce";
-import { ErrorBoundary } from "~/components/ErrorBoundary";
-import { SearchInput } from "~/components/search/SearchInput";
-import { SearchResults } from "~/components/search/SearchResults";
-import { YearFilter } from "~/components/search/YearFilter";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { Suspense } from "react";
+import { Search } from "lucide-react";
 import { Skeleton } from "~/components/ui/skeleton";
+import { ClientSearchInput } from "~/components/search/ClientSearchInput";
+import { StreamingSearchResults } from "~/components/search/StreamingSearchResults";
+import { ErrorBoundary } from "~/components/ErrorBoundary";
+import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { ERROR_MESSAGES, SEARCH_CONFIG } from "~/lib/constants";
-import { filterVehiclesByYear } from "~/lib/utils";
-import { api } from "~/trpc/react";
 
-function SearchPageContent() {
-  // URL state for search query
-  const [query, setQuery] = useQueryState("q", { defaultValue: "" });
-  
-  // Local state for year filter
+export default async function SearchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; minYear?: string; maxYear?: string }>;
+}) {
+  const resolvedParams = await searchParams;
+  const searchQuery = resolvedParams.q?.trim() ?? "";
   const currentYear = new Date().getFullYear();
-  const [yearRange, setYearRange] = useState<[number, number]>([1990, currentYear]);
-
-  // Debounced query for API calls
-  const [debouncedQuery] = useDebounce(query, SEARCH_CONFIG.DEBOUNCE_DELAY);
-
-  // Search results from tRPC
-  const { data: searchResults, isLoading: searchLoading } = api.vehicles.search.useQuery(
-    { query: debouncedQuery },
-    { 
-      enabled: debouncedQuery.trim().length >= SEARCH_CONFIG.MIN_QUERY_LENGTH,
-      staleTime: 30000, // Cache results for 30 seconds
-    }
-  );
-
-  // Filter vehicles by year range
-  const filteredVehicles = useMemo(() => {
-    if (!searchResults?.vehicles) return [];
-    return filterVehiclesByYear(searchResults.vehicles, yearRange);
-  }, [searchResults?.vehicles, yearRange]);
-
-  // Prepare search result data
-  const searchResult = useMemo(() => {
-    if (!searchResults) {
-      return {
-        vehicles: [],
-        totalCount: 0,
-        page: 1,
-        hasMore: false,
-        locationsCovered: 0,
-        searchTime: 0,
-        locationsWithErrors: [],
-      };
-    }
-
-    return {
-      vehicles: filteredVehicles,
-      totalCount: filteredVehicles.length,
-      page: 1,
-      hasMore: false,
-      locationsCovered: searchResults.locationsCovered,
-      searchTime: searchResults.searchTime,
-      locationsWithErrors: searchResults.locationsWithErrors,
-    };
-  }, [filteredVehicles, searchResults]);
-
-  // Show empty state when no query
-  const showEmptyState = !query.trim();
   
+  // Simple year range - no expensive calculations
+  const minYear = resolvedParams.minYear ? parseInt(resolvedParams.minYear) : 1990;
+  const maxYear = resolvedParams.maxYear ? parseInt(resolvedParams.maxYear) : currentYear;
+
   // Show error state for very short queries
-  const showErrorState = query.trim().length > 0 && query.trim().length < SEARCH_CONFIG.MIN_QUERY_LENGTH;
-
-  // Handlers
-  const handleQueryChange = useCallback(
-    (newQuery: string) => {
-      void setQuery(newQuery);
-    },
-    [setQuery],
-  );
-
-  const handleSearch = useCallback(() => {
-    // Search is handled automatically by the debounced query
-  }, []);
-
-  const handleYearChange = useCallback((newRange: [number, number]) => {
-    setYearRange(newRange);
-  }, []);
+  const showErrorState = searchQuery.length > 0 && searchQuery.length < SEARCH_CONFIG.MIN_QUERY_LENGTH;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,7 +35,7 @@ function SearchPageContent() {
                 LKQ Global Search
               </h1>
               <span className="text-sm text-gray-500">
-                Search across all locations
+                🚀 Streaming results across all locations
               </span>
             </div>
           </div>
@@ -106,44 +43,30 @@ function SearchPageContent() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Search Input */}
+        {/* Client-side Search Input for responsive typing */}
         <div className="mb-6">
-          <SearchInput
-            value={query}
-            onChange={handleQueryChange}
-            onSearch={handleSearch}
-            placeholder="Enter year, make, model (e.g., '2018 Honda Civic' or 'Toyota')"
-            isLoading={searchLoading}
-          />
+          <Suspense fallback={
+            <div className="w-full">
+              <div className="relative w-full text-sm">
+                <Skeleton className="h-10 w-full rounded-md" />
+              </div>
+            </div>
+          }>
+            <ClientSearchInput defaultValue={searchQuery} />
+          </Suspense>
         </div>
 
-        {/* Year Filter - Only show when we have results */}
-        {!showEmptyState && !showErrorState && searchResults && (
-          <div className="mb-8">
-            <div className="mx-auto max-w-md rounded-lg border bg-white p-4 shadow-sm">
-              <YearFilter
-                yearRange={yearRange}
-                onYearChange={handleYearChange}
-                minYear={1990}
-                maxYear={currentYear}
-                isLoading={searchLoading}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Empty State */}
-        {showEmptyState && (
+        {!searchQuery && (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
               <Search className="h-12 w-12 text-gray-400" />
             </div>
             <h3 className="mb-2 text-lg font-medium text-gray-900">
-              Search for vehicles
+              🔍 Search for vehicles
             </h3>
             <p className="mx-auto max-w-md text-gray-500">
-              Enter a year, make, model, or any combination to search across all
-              LKQ Pick Your Part locations.
+              Enter a year, make, model, or any combination. Results will stream in as each location finishes searching!
             </p>
           </div>
         )}
@@ -162,15 +85,19 @@ function SearchPageContent() {
           </Alert>
         )}
 
-        {/* Search Results */}
-        {!showEmptyState && !showErrorState && (
+        {/* Streaming Search Results - The main feature! */}
+        {searchQuery && !showErrorState && (
           <ErrorBoundary>
             <Suspense
               fallback={
                 <div className="space-y-6">
-                  <div className="flex items-center space-x-4">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-4 w-32" />
+                  <div className="text-center">
+                    <h2 className="text-lg font-medium text-gray-900 mb-2">
+                      🚀 Streaming Search Results for &quot;{searchQuery}&quot;
+                    </h2>
+                    <p className="text-sm text-gray-500 mb-6">
+                      Results will appear as each location finishes searching...
+                    </p>
                   </div>
                   <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {Array.from({ length: 6 }).map((_, i) => (
@@ -203,29 +130,14 @@ function SearchPageContent() {
                 </div>
               }
             >
-              <SearchResults
-                searchResult={searchResult}
-                isLoading={searchLoading}
+              <StreamingSearchResults
+                searchQuery={searchQuery}
+                yearRange={[minYear, maxYear]}
               />
             </Suspense>
           </ErrorBoundary>
         )}
       </div>
     </div>
-  );
-}
-
-export default function SearchPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex items-center space-x-2">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <span>Loading search...</span>
-        </div>
-      </div>
-    }>
-      <SearchPageContent />
-    </Suspense>
   );
 }
