@@ -718,65 +718,10 @@ function SearchResultsHeaderSkeleton() {
   );
 }
 
-function SearchPageFallback() {
-  return (
-    <div className="bg-background min-h-screen">
-      {/* Header */}
-      <header className="bg-card border-b shadow-sm">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-foreground text-xl font-bold">
-                LKQ Global Search
-              </h1>
-              <span className="text-muted-foreground text-sm">
-                Search across all locations
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Search Input Skeleton */}
-        <div className="mb-6">
-          <Skeleton className="h-10 w-full" />
-        </div>
-
-        <div className="flex w-full gap-8">
-          {/* Sidebar Skeleton */}
-          <div className="w-80 flex-shrink-0">
-            <Skeleton className="h-96 w-full" />
-          </div>
-
-          {/* Main Content Skeleton */}
-          <div className="w-full flex-1">
-            <SearchResultsHeaderSkeleton />
-
-            {/* Empty State */}
-            <div className="py-12 text-center">
-              <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
-                <Search className="text-muted-foreground h-12 w-12" />
-              </div>
-              <h3 className="text-foreground mb-2 text-lg font-medium">
-                Search for vehicles
-              </h3>
-              <p className="text-muted-foreground mx-auto max-w-md">
-                Enter a year, make, model, or any combination to search across
-                all LKQ Pick Your Part locations.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function SearchPage() {
   return (
     <ErrorBoundary>
-      <Suspense fallback={<SearchPageFallback />}>
+      <Suspense>
         <SearchPageContent />
       </Suspense>
     </ErrorBoundary>
