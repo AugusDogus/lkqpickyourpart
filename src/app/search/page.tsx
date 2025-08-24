@@ -12,7 +12,10 @@ import { Suspense, useCallback, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { SearchInput } from "~/components/search/SearchInput";
-import { SearchResults } from "~/components/search/SearchResults";
+import {
+  SearchResults,
+  SearchSummary,
+} from "~/components/search/SearchResults";
 import { Sidebar } from "~/components/search/Sidebar";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
@@ -512,19 +515,21 @@ function SearchPageContent() {
           />
         </div>
 
-        <div className="flex w-full gap-8">
+        <div className="relative flex w-full gap-6">
           {/* Sidebar - only render when filters are shown */}
           {showFilters && (
-            <Sidebar
-              showFilters={showFilters}
-              setShowFilters={setShowFilters}
-              activeFilterCount={activeFilterCount}
-              clearAllFilters={clearAllFilters}
-              filters={filters}
-              filterOptions={filterOptions}
-              toggleArrayFilter={toggleArrayFilter}
-              updateFilter={updateFilter}
-            />
+            <div className="sticky top-6 h-fit">
+              <Sidebar
+                showFilters={showFilters}
+                setShowFilters={setShowFilters}
+                activeFilterCount={activeFilterCount}
+                clearAllFilters={clearAllFilters}
+                filters={filters}
+                filterOptions={filterOptions}
+                toggleArrayFilter={toggleArrayFilter}
+                updateFilter={updateFilter}
+              />
+            </div>
           )}
 
           {/* Main Content */}
@@ -649,6 +654,7 @@ function SearchPageContent() {
                   }
                 }
                 isLoading={searchLoading}
+                sidebarOpen={showFilters}
               />
             )}
 
@@ -677,6 +683,10 @@ function SearchPageContent() {
               )}
           </div>
         </div>
+
+        {filteredSearchResult && (
+          <SearchSummary searchResult={filteredSearchResult} />
+        )}
       </div>
     </div>
   );

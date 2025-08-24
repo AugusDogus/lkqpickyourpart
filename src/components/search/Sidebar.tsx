@@ -50,7 +50,7 @@ export function Sidebar({
     <div>
       {showFilters && (
         <div className="w-80 flex-shrink-0">
-          <Card className="sticky top-4">
+          <Card className="max-h-[calc(100vh-3rem)] overflow-y-auto">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-bold">Filters</CardTitle>
@@ -82,7 +82,15 @@ export function Sidebar({
               )}
             </CardHeader>
 
-            <CardContent className="max-h-[calc(100vh-200px)] space-y-6 overflow-y-auto">
+            <CardContent
+              className="ml-2 max-h-[calc(100vh-200px)] space-y-6"
+              style={{
+                overflowY: "auto",
+                scrollbarGutter: "stable",
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgb(203 213 225) transparent",
+              }}
+            >
               {/* Make Filter */}
               <Collapsible defaultOpen>
                 <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
@@ -91,7 +99,10 @@ export function Sidebar({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
                   {filterOptions.makes.map((make) => (
-                    <div key={make} className="flex items-center space-x-2">
+                    <div
+                      key={make}
+                      className="flex items-center space-x-2 pr-3 pl-3"
+                    >
                       <Checkbox
                         id={`make-${make}`}
                         checked={filters.makes?.includes(make)}
@@ -139,7 +150,10 @@ export function Sidebar({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
                   {filterOptions.colors.map((color) => (
-                    <div key={color} className="flex items-center space-x-2">
+                    <div
+                      key={color}
+                      className="flex items-center space-x-2 pr-3 pl-3"
+                    >
                       <Checkbox
                         id={`color-${color}`}
                         checked={filters.colors?.includes(color)}
@@ -163,7 +177,10 @@ export function Sidebar({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
                   {filterOptions.states.map((state) => (
-                    <div key={state} className="flex items-center space-x-2">
+                    <div
+                      key={state}
+                      className="flex items-center space-x-2 pr-3 pl-3"
+                    >
                       <Checkbox
                         id={`state-${state}`}
                         checked={filters.states?.includes(state)}
@@ -187,7 +204,10 @@ export function Sidebar({
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
                   {filterOptions.salvageYards.map((yard) => (
-                    <div key={yard} className="flex items-center space-x-2">
+                    <div
+                      key={yard}
+                      className="flex items-center space-x-2 pr-3 pl-3"
+                    >
                       <Checkbox
                         id={`yard-${yard}`}
                         checked={filters.salvageYards?.includes(yard)}

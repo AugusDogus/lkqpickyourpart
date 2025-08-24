@@ -10,15 +10,51 @@ import { Skeleton } from "~/components/ui/skeleton";
 import type { SearchResult } from "~/lib/types";
 import { VehicleCard } from "./VehicleCard";
 
+interface SearchSummaryProps {
+  searchResult: SearchResult;
+}
+
+export function SearchSummary({ searchResult }: SearchSummaryProps) {
+  return (
+    <div className="text-muted-foreground mt-6 border-t pt-6 text-center text-sm">
+      <p>
+        Showing {searchResult.vehicles.length} of{" "}
+        {searchResult.totalCount.toLocaleString()} vehicles
+        {searchResult.locationsCovered > 0 && (
+          <span className="ml-1">
+            from {searchResult.locationsCovered} locations
+          </span>
+        )}
+      </p>
+      {searchResult.locationsWithErrors.length > 0 && (
+        <p className="text-destructive mt-1 text-xs">
+          {searchResult.locationsWithErrors.length} locations had errors
+        </p>
+      )}
+    </div>
+  );
+}
+
 interface SearchResultsProps {
   searchResult: SearchResult;
   isLoading: boolean;
+  sidebarOpen?: boolean;
 }
 
-export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
+export function SearchResults({
+  searchResult,
+  isLoading,
+  sidebarOpen = false,
+}: SearchResultsProps) {
   if (isLoading) {
     return (
-      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div
+        className={`grid w-full gap-6 ${
+          sidebarOpen
+            ? "grid-cols-1 md:grid-cols-2"
+            : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+        }`}
+      >
         {/* Loading Skeletons */}
         {Array.from({ length: 6 }).map((_, index) => (
           <Card key={index} className="overflow-hidden py-0">
@@ -48,34 +84,19 @@ export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Results Grid */}
-      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {searchResult.vehicles.map((vehicle) => (
-          <VehicleCard
-            key={`${vehicle.location.locationCode}-${vehicle.id}`}
-            vehicle={vehicle}
-          />
-        ))}
-      </div>
-
-      {/* Search Summary */}
-      <div className="text-muted-foreground border-t pt-6 text-center text-sm">
-        <p>
-          Showing {searchResult.vehicles.length} of{" "}
-          {searchResult.totalCount.toLocaleString()} vehicles
-          {searchResult.locationsCovered > 0 && (
-            <span className="ml-1">
-              from {searchResult.locationsCovered} locations
-            </span>
-          )}
-        </p>
-        {searchResult.locationsWithErrors.length > 0 && (
-          <p className="text-destructive mt-1 text-xs">
-            {searchResult.locationsWithErrors.length} locations had errors
-          </p>
-        )}
-      </div>
+    <div
+      className={`grid w-full gap-6 ${
+        sidebarOpen
+          ? "grid-cols-1 md:grid-cols-2"
+          : "grid-cols-1 md:grid-cols-2 xl:grid-cols-3"
+      }`}
+    >
+      {searchResult.vehicles.map((vehicle) => (
+        <VehicleCard
+          key={`${vehicle.location.locationCode}-${vehicle.id}`}
+          vehicle={vehicle}
+        />
+      ))}
     </div>
   );
 }
