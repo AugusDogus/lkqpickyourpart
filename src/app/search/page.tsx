@@ -17,6 +17,7 @@ import {
   SearchSummary,
 } from "~/components/search/SearchResults";
 import { Sidebar } from "~/components/search/Sidebar";
+import { ThemeToggle } from "~/components/theme/theme-toggle";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -486,18 +487,21 @@ function SearchPageContent() {
   }, [searchResults, filteredVehicles, sortBy, sortVehicles]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-background min-h-screen">
       {/* Header */}
-      <header className="border-b bg-white shadow-sm">
+      <header className="bg-card border-b shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-foreground text-xl font-bold">
                 LKQ Global Search
               </h1>
-              <span className="text-sm text-gray-500">
+              <span className="text-muted-foreground text-sm">
                 Search across all locations
               </span>
+            </div>
+            <div className="ml-auto">
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -539,15 +543,15 @@ function SearchPageContent() {
               <div className="mb-6">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-2xl font-black text-gray-800">
+                    <h2 className="text-foreground text-2xl font-black">
                       Search Results
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-muted-foreground">
                       {filteredSearchResult.totalCount.toLocaleString()}{" "}
                       vehicles found
                       {filteredSearchResult.totalCount !==
                         searchResults?.totalCount && (
-                        <span className="text-sm text-gray-500">
+                        <span className="text-muted-foreground text-sm">
                           {" "}
                           (filtered from{" "}
                           {searchResults?.totalCount.toLocaleString()})
@@ -562,7 +566,7 @@ function SearchPageContent() {
                       {(() => {
                         const IconComponent = getSortIcon(sortBy);
                         return (
-                          <IconComponent className="h-4 w-4 text-gray-500" />
+                          <IconComponent className="text-muted-foreground h-4 w-4" />
                         );
                       })()}
                       <Select
@@ -603,7 +607,7 @@ function SearchPageContent() {
                 </div>
 
                 {/* Search Stats */}
-                <div className="mb-6 flex items-center justify-between text-sm text-gray-500">
+                <div className="text-muted-foreground mb-6 flex items-center justify-between text-sm">
                   <span>
                     Searched {searchResults?.locationsCovered} locations in{" "}
                     {searchResults?.searchTime}ms
@@ -626,13 +630,13 @@ function SearchPageContent() {
             {/* Empty State */}
             {!debouncedQuery && !searchLoading && (
               <div className="py-12 text-center">
-                <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
-                  <Search className="h-12 w-12 text-gray-400" />
+                <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                  <Search className="text-muted-foreground h-12 w-12" />
                 </div>
-                <h3 className="mb-2 text-lg font-medium text-gray-900">
+                <h3 className="text-foreground mb-2 text-lg font-medium">
                   Search for vehicles
                 </h3>
-                <p className="mx-auto max-w-md text-gray-500">
+                <p className="text-muted-foreground mx-auto max-w-md">
                   Enter a year, make, model, or any combination to search across
                   all LKQ Pick Your Part locations.
                 </p>
@@ -663,13 +667,13 @@ function SearchPageContent() {
               filteredSearchResult?.totalCount === 0 &&
               !searchLoading && (
                 <div className="py-12 text-center">
-                  <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
-                    <AlertCircle className="h-12 w-12 text-gray-400" />
+                  <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                    <AlertCircle className="text-muted-foreground h-12 w-12" />
                   </div>
-                  <h3 className="mb-2 text-lg font-medium text-gray-900">
+                  <h3 className="text-foreground mb-2 text-lg font-medium">
                     No vehicles found
                   </h3>
-                  <p className="mx-auto mb-6 max-w-md text-gray-500">
+                  <p className="text-muted-foreground mx-auto mb-6 max-w-md">
                     {searchResults?.totalCount === 0
                       ? "No vehicles match your search. Try different search terms."
                       : "No vehicles match your current filters. Try adjusting your filters."}
@@ -694,16 +698,16 @@ function SearchPageContent() {
 
 function SearchPageFallback() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-background min-h-screen">
       {/* Header */}
-      <header className="border-b bg-white shadow-sm">
+      <header className="bg-card border-b shadow-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-bold text-gray-900">
+              <h1 className="text-foreground text-xl font-bold">
                 LKQ Global Search
               </h1>
-              <span className="text-sm text-gray-500">
+              <span className="text-muted-foreground text-sm">
                 Search across all locations
               </span>
             </div>
@@ -741,13 +745,13 @@ function SearchPageFallback() {
 
             {/* Empty State */}
             <div className="py-12 text-center">
-              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gray-100">
-                <Search className="h-12 w-12 text-gray-400" />
+              <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                <Search className="text-muted-foreground h-12 w-12" />
               </div>
-              <h3 className="mb-2 text-lg font-medium text-gray-900">
+              <h3 className="text-foreground mb-2 text-lg font-medium">
                 Search for vehicles
               </h3>
-              <p className="mx-auto max-w-md text-gray-500">
+              <p className="text-muted-foreground mx-auto max-w-md">
                 Enter a year, make, model, or any combination to search across
                 all LKQ Pick Your Part locations.
               </p>

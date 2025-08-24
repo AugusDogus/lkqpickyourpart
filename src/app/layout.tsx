@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "~/components/ui/sonner";
 
+import { ThemeProvider } from "~/components/theme/theme-provider";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
@@ -23,12 +24,19 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geist.variable}`}>
+    <html lang="en" className={`${geist.variable}`} suppressHydrationWarning>
       <body>
         <NuqsAdapter>
           <TRPCReactProvider>
-            {children}
-            <Analytics />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+              <Analytics />
+            </ThemeProvider>
           </TRPCReactProvider>
         </NuqsAdapter>
         <Toaster />

@@ -203,8 +203,8 @@ export function YearFilter({
   return (
     <div className={className}>
       <div className="mb-3 flex items-center justify-between">
-        <label className="text-sm font-medium text-gray-700">Year Range</label>
-        <span className="text-sm text-gray-500">{formatYearRange}</span>
+        <label className="text-sm font-medium text-foreground">Year Range</label>
+        <span className="text-sm text-muted-foreground">{formatYearRange}</span>
       </div>
       <div className="px-3">
         <Slider
@@ -217,7 +217,7 @@ export function YearFilter({
         />
         <div className="mt-4 flex items-center gap-3">
           <div className="flex flex-col">
-            <label htmlFor="min-year" className="mb-1 text-xs text-gray-500">
+            <label htmlFor="min-year" className="mb-1 text-xs text-muted-foreground">
               Min
             </label>
             <Input
@@ -232,13 +232,13 @@ export function YearFilter({
               className="h-8 w-20 text-center text-sm"
             />
           </div>
-          <div className="mt-5 flex-1 text-center text-xs text-gray-400">
+          <div className="mt-5 flex-1 text-center text-xs text-muted-foreground">
             to
           </div>
           <div className="flex flex-col">
             <label
               htmlFor="max-year"
-              className="mb-1 text-right text-xs text-gray-500"
+              className="mb-1 text-right text-xs text-muted-foreground"
             >
               Max
             </label>

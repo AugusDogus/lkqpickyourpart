@@ -93,7 +93,7 @@ export function Sidebar({
             >
               {/* Make Filter */}
               <Collapsible defaultOpen>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-accent">
                   <span className="font-medium">Make</span>
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -118,13 +118,13 @@ export function Sidebar({
 
               {/* Year Range Filter */}
               <Collapsible defaultOpen>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-accent">
                   <span className="font-medium">Year Range</span>
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-4">
                   <div className="px-2">
-                    <div className="mb-2 flex justify-between text-sm text-gray-600">
+                    <div className="mb-2 flex justify-between text-sm text-muted-foreground">
                       <span>{filters.yearRange?.[0]}</span>
                       <span>{filters.yearRange?.[1]}</span>
                     </div>
@@ -144,7 +144,7 @@ export function Sidebar({
 
               {/* Color Filter */}
               <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-accent">
                   <span className="font-medium">Color</span>
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -171,7 +171,7 @@ export function Sidebar({
 
               {/* Location Filter */}
               <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-accent">
                   <span className="font-medium">State</span>
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
@@ -198,7 +198,7 @@ export function Sidebar({
 
               {/* Salvage Yard Filter */}
               <Collapsible>
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-gray-50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded p-2 hover:bg-accent">
                   <span className="font-medium">Salvage Yard</span>
                   <ChevronDown className="h-4 w-4" />
                 </CollapsibleTrigger>
