@@ -635,9 +635,9 @@ function SearchPageContent() {
                 <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
                   <Search className="text-muted-foreground h-12 w-12" />
                 </div>
-                <h3 className="text-foreground mb-2 text-lg font-medium">
+                <h2 className="text-foreground mb-2 text-lg font-medium">
                   Search for vehicles
-                </h3>
+                </h2>
                 <p className="text-muted-foreground mx-auto max-w-md">
                   Enter a year, make, model, or any combination to search across
                   all LKQ Pick Your Part locations.
@@ -672,9 +672,9 @@ function SearchPageContent() {
                   <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
                     <AlertCircle className="text-muted-foreground h-12 w-12" />
                   </div>
-                  <h3 className="text-foreground mb-2 text-lg font-medium">
+                  <h2 className="text-foreground mb-2 text-lg font-medium">
                     No vehicles found
-                  </h3>
+                  </h2>
                   <p className="text-muted-foreground mx-auto mb-6 max-w-md">
                     {searchResults?.totalCount === 0
                       ? "No vehicles match your search. Try different search terms."
