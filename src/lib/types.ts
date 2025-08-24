@@ -75,6 +75,8 @@ export interface SearchFilters {
   makes?: string[];
   models?: string[];
   colors?: string[];
+  states?: string[];
+  salvageYards?: string[];
   yearRange?: [number, number];
   dateRange?: [Date, Date];
   maxDistance?: number;

@@ -18,7 +18,7 @@ interface SearchResultsProps {
 export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {/* Loading Skeletons */}
         {Array.from({ length: 6 }).map((_, index) => (
           <Card key={index} className="overflow-hidden py-0">
@@ -50,7 +50,7 @@ export function SearchResults({ searchResult, isLoading }: SearchResultsProps) {
   return (
     <div className="space-y-6">
       {/* Results Grid */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {searchResult.vehicles.map((vehicle) => (
           <VehicleCard
             key={`${vehicle.location.locationCode}-${vehicle.id}`}
