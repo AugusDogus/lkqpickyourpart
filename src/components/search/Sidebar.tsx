@@ -195,10 +195,7 @@ export function Sidebar({
                           toggleArrayFilter("salvageYards", yard)
                         }
                       />
-                      <Label
-                        htmlFor={`yard-${yard}`}
-                        className="text-sm text-xs"
-                      >
+                      <Label htmlFor={`yard-${yard}`} className="text-sm">
                         {yard}
                       </Label>
                     </div>
