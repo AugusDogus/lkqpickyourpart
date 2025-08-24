@@ -8,7 +8,7 @@ import {
   Search,
 } from "lucide-react";
 import { useQueryState } from "nuqs";
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
 import { SearchInput } from "~/components/search/SearchInput";
@@ -540,21 +540,7 @@ function SearchPageContent() {
           <div className="w-full flex-1">
             {/* Search Results Header */}
             {searchLoading && !filteredSearchResult ? (
-              <div className="mb-6">
-                <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <Skeleton className="mb-2 h-8 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-40" />
-                    <Skeleton className="h-10 w-24" />
-                  </div>
-                </div>
-                <div className="mb-6 flex items-center justify-between text-sm">
-                  <Skeleton className="h-4 w-48" />
-                </div>
-              </div>
+              <SearchResultsHeaderSkeleton />
             ) : filteredSearchResult ? (
               <div className="mb-6">
                 <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -712,10 +698,87 @@ function SearchPageContent() {
   );
 }
 
+function SearchResultsHeaderSkeleton() {
+  return (
+    <div className="mb-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <Skeleton className="mb-2 h-8 w-48" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-10 w-40" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+      <div className="mb-6 flex items-center justify-between text-sm">
+        <Skeleton className="h-4 w-48" />
+      </div>
+    </div>
+  );
+}
+
+function SearchPageFallback() {
+  return (
+    <div className="bg-background min-h-screen">
+      {/* Header */}
+      <header className="bg-card border-b shadow-sm">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-foreground text-xl font-bold">
+                LKQ Global Search
+              </h1>
+              <span className="text-muted-foreground text-sm">
+                Search across all locations
+              </span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Search Input Skeleton */}
+        <div className="mb-6">
+          <Skeleton className="h-10 w-full" />
+        </div>
+
+        <div className="flex w-full gap-8">
+          {/* Sidebar Skeleton */}
+          <div className="w-80 flex-shrink-0">
+            <Skeleton className="h-96 w-full" />
+          </div>
+
+          {/* Main Content Skeleton */}
+          <div className="w-full flex-1">
+            <SearchResultsHeaderSkeleton />
+
+            {/* Empty State */}
+            <div className="py-12 text-center">
+              <div className="bg-muted mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full">
+                <Search className="text-muted-foreground h-12 w-12" />
+              </div>
+              <h3 className="text-foreground mb-2 text-lg font-medium">
+                Search for vehicles
+              </h3>
+              <p className="text-muted-foreground mx-auto max-w-md">
+                Enter a year, make, model, or any combination to search across
+                all LKQ Pick Your Part locations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SearchPage() {
   return (
     <ErrorBoundary>
-      <SearchPageContent />
+      <Suspense fallback={<SearchPageFallback />}>
+        <SearchPageContent />
+      </Suspense>
     </ErrorBoundary>
   );
 }
