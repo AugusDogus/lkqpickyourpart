@@ -89,10 +89,10 @@ function DefaultErrorFallback({
 
         {process.env.NODE_ENV === "development" && (
           <details className="mt-4">
-            <summary className="cursor-pointer text-sm text-gray-600">
+            <summary className="text-muted-foreground cursor-pointer text-sm">
               Error Details (Development)
             </summary>
-            <pre className="mt-2 text-xs whitespace-pre-wrap text-gray-500">
+            <pre className="text-muted-foreground mt-2 text-xs whitespace-pre-wrap">
               {error.stack}
             </pre>
           </details>
