@@ -1,3 +1,4 @@
+import { geolocation } from "@vercel/functions";
 import * as cheerio from "cheerio";
 import { backOff } from "exponential-backoff";
 import { revalidateTag, unstable_cache } from "next/cache";
@@ -12,6 +13,7 @@ import type {
   Vehicle,
   VehicleImage,
 } from "~/lib/types";
+import { calculateDistance } from "~/lib/utils";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { locationsRouter } from "./locations";
 
@@ -21,12 +23,10 @@ const searchFiltersSchema = z.object({
   makes: z.array(z.string()).optional(),
   models: z.array(z.string()).optional(),
   colors: z.array(z.string()).optional(),
+  states: z.array(z.string()).optional(),
   yearRange: z.tuple([z.number(), z.number()]).optional(),
   dateRange: z.tuple([z.date(), z.date()]).optional(),
   maxDistance: z.number().optional(),
-  userLocation: z.tuple([z.number(), z.number()]).optional(),
-  sortBy: z.enum(["distance", "date", "year", "make", "location"]).optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional(),
 });
 
 /**
@@ -431,6 +431,14 @@ function filterVehicles(
       return false;
     }
 
+    // Filter by states
+    if (
+      filters.states?.length &&
+      !filters.states.includes(vehicle.location.stateAbbr)
+    ) {
+      return false;
+    }
+
     // Filter by year range
     if (filters.yearRange) {
       const [minYear, maxYear] = filters.yearRange;
@@ -461,51 +469,31 @@ function filterVehicles(
   });
 }
 
-/**
- * Sort vehicles based on criteria
- */
-function sortVehicles(
-  vehicles: Vehicle[],
-  sortBy?: SearchFilters["sortBy"],
-  sortOrder: SearchFilters["sortOrder"] = "asc",
-): Vehicle[] {
-  if (!sortBy) return vehicles;
-
-  const multiplier = sortOrder === "desc" ? -1 : 1;
-
-  return vehicles.sort((a, b) => {
-    switch (sortBy) {
-      case "distance":
-        return (a.location.distance - b.location.distance) * multiplier;
-      case "date":
-        return (
-          (new Date(a.availableDate).getTime() -
-            new Date(b.availableDate).getTime()) *
-          multiplier
-        );
-      case "year":
-        return (a.year - b.year) * multiplier;
-      case "make":
-        return a.make.localeCompare(b.make) * multiplier;
-      case "location":
-        return (
-          a.location.displayName.localeCompare(b.location.displayName) *
-          multiplier
-        );
-      default:
-        return 0;
-    }
-  });
-}
-
 export const vehiclesRouter = createTRPCRouter({
   /**
    * Global search across all LKQ locations
    */
   search: publicProcedure
     .input(searchFiltersSchema)
-    .query(async ({ input }): Promise<SearchResult> => {
+    .query(async ({ input, ctx }): Promise<SearchResult> => {
       const startTime = Date.now();
+
+      // Always get user's geolocation for distance calculations
+      let userLocation: [number, number] = [39.8283, -98.5795]; // Default to center of US
+      try {
+        if (ctx.req) {
+          const geo = geolocation(ctx.req);
+          if (geo?.latitude && geo?.longitude) {
+            userLocation = [
+              parseFloat(geo.latitude),
+              parseFloat(geo.longitude),
+            ];
+          }
+        }
+      } catch (error) {
+        console.error("Failed to get geolocation:", error);
+        // Keep default location
+      }
 
       // Search all locations
       const locationsToSearch = await locationsRouter
@@ -523,13 +511,23 @@ export const vehiclesRouter = createTRPCRouter({
               location,
               input.query,
             );
-            return parsedVehicles.map(
-              (vehicle) =>
-                ({
-                  ...vehicle,
-                  location,
-                }) as Vehicle,
-            );
+            return parsedVehicles.map((vehicle) => {
+              // Always calculate distance from user's location
+              const distance = calculateDistance(
+                userLocation[0],
+                userLocation[1],
+                location.lat,
+                location.lng,
+              );
+
+              return {
+                ...vehicle,
+                location: {
+                  ...location,
+                  distance,
+                },
+              } as Vehicle;
+            });
           } catch (error) {
             console.error(
               `Error fetching vehicles from ${location.locationCode}:`,
@@ -547,15 +545,8 @@ export const vehiclesRouter = createTRPCRouter({
       // Apply filters
       const filteredVehicles = filterVehicles(allVehicles, input);
 
-      // Sort results
-      const sortedVehicles = sortVehicles(
-        filteredVehicles,
-        input.sortBy,
-        input.sortOrder,
-      );
-
-      // Return ALL results - no pagination
-      const allResults = sortedVehicles;
+      // Return ALL results - no pagination (sorting is done client-side)
+      const allResults = filteredVehicles;
 
       const searchTime = Date.now() - startTime;
 
