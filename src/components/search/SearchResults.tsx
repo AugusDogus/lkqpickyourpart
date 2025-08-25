@@ -7,6 +7,7 @@ import {
   CardHeader,
 } from "~/components/ui/card";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useIsMobile } from "~/hooks/use-media-query";
 import type { SearchResult } from "~/lib/types";
 import { VehicleCard } from "./VehicleCard";
 
@@ -46,6 +47,9 @@ export function SearchResults({
   isLoading,
   sidebarOpen = false,
 }: SearchResultsProps) {
+  const isMobile = useIsMobile();
+  const amountOfSkeletons = isMobile ? 1 : 6;
+
   if (isLoading) {
     return (
       <div
@@ -56,7 +60,7 @@ export function SearchResults({
         }`}
       >
         {/* Loading Skeletons */}
-        {Array.from({ length: 6 }).map((_, index) => (
+        {Array.from({ length: amountOfSkeletons }).map((_, index) => (
           <Card key={index} className="overflow-hidden py-0">
             <CardHeader className="p-0">
               <Skeleton className="aspect-video" />
