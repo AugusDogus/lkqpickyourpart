@@ -11,15 +11,14 @@ import { useQueryState } from "nuqs";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
+import { MobileFiltersDrawer } from "~/components/search/MobileFiltersDrawer";
 import { SearchInput } from "~/components/search/SearchInput";
 import {
   SearchResults,
   SearchSummary,
 } from "~/components/search/SearchResults";
-import { MobileFiltersDrawer } from "~/components/search/MobileFiltersDrawer";
 import { Sidebar } from "~/components/search/Sidebar";
 import { ThemeToggle } from "~/components/theme/theme-toggle";
-import { useIsMobile } from "~/hooks/use-media-query";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -31,6 +30,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { Skeleton } from "~/components/ui/skeleton";
+import { useIsMobile } from "~/hooks/use-media-query";
 import { ERROR_MESSAGES, SEARCH_CONFIG } from "~/lib/constants";
 import type { SearchFilters, Vehicle } from "~/lib/types";
 import { api } from "~/trpc/react";
@@ -499,7 +499,7 @@ function SearchPageContent() {
               <h1 className="text-foreground text-xl font-bold">
                 LKQ Global Search
               </h1>
-              <span className="text-muted-foreground text-sm">
+              <span className="text-muted-foreground hidden text-sm sm:block">
                 Search across all locations
               </span>
             </div>
