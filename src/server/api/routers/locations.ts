@@ -3,13 +3,11 @@ import { API_ENDPOINTS } from "~/lib/constants";
 import type { Location } from "~/lib/types";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 
-// In-memory cache for locations
-let locationsCache: Location[] | null = null;
-let lastFetchTime = 0;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
 /**
- * Fetches location data from LKQ website
+ * Fetches location data from LKQ website with Next.js Data Cache
+ * - Uses 'force-cache' for persistent caching across requests
+ * - Revalidates every hour to ensure fresh data
+ * - Automatic request deduplication within render passes
  * In a real implementation, this would scrape the actual location page
  * For now, we'll use a mock implementation
  */
@@ -19,6 +17,10 @@ async function fetchLocationsFromLKQ(): Promise<Location[]> {
     // and parse the _locationList JavaScript variable
     const response = await fetch(
       `${API_ENDPOINTS.LKQ_BASE}${API_ENDPOINTS.LOCATION_PAGE}`,
+      {
+        cache: "force-cache", // Use Next.js Data Cache
+        next: { revalidate: 3600 }, // Revalidate every hour
+      },
     );
 
     if (!response.ok) {
@@ -174,23 +176,10 @@ function calculateDistance(
 export const locationsRouter = createTRPCRouter({
   /**
    * Get all LKQ locations
+   * Uses Next.js Data Cache for automatic caching and request deduplication
    */
   getAll: publicProcedure.query(async (): Promise<Location[]> => {
-    const now = Date.now();
-
-    // Return cached data if still valid
-    if (locationsCache && now - lastFetchTime < CACHE_DURATION) {
-      return locationsCache;
-    }
-
-    // Fetch fresh data
-    const locations = await fetchLocationsFromLKQ();
-
-    // Update cache
-    locationsCache = locations;
-    lastFetchTime = now;
-
-    return locations;
+    return await fetchLocationsFromLKQ();
   }),
 
   /**

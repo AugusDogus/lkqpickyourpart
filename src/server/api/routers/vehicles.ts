@@ -15,8 +15,6 @@ import type {
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { locationsRouter } from "./locations";
 
-
-
 // Schema for search filters
 const searchFiltersSchema = z.object({
   query: z.string(),
@@ -40,14 +38,22 @@ function delay(ms: number): Promise<void> {
 
 /**
  * Fetch with retry and exponential backoff
+ * Uses Next.js Data Cache for optimal caching and request deduplication
  */
 async function fetchWithRetry(
   url: string,
-  options: RequestInit,
+  options: RequestInit = {},
 ): Promise<Response> {
+  // Merge with Next.js Data Cache options
+  const cacheOptions: RequestInit = {
+    ...options,
+    cache: "force-cache", // Use Next.js Data Cache
+    next: { revalidate: 300 }, // Revalidate every 5 minutes
+  };
+
   return backOff(
     async () => {
-      const response = await fetch(url, options);
+      const response = await fetch(url, cacheOptions);
 
       // If successful, return the response
       if (response.ok) {
@@ -179,10 +185,10 @@ export function clearVehicleCache(): void {
  */
 function extractAfterLabel(text: string, label: string): string {
   const index = text.indexOf(label);
-  if (index === -1) return '';
+  if (index === -1) return "";
   return text
     .substring(index + label.length)
-    .replace(/\s+/g, ' ')
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -191,7 +197,7 @@ function extractAfterLabel(text: string, label: string): string {
  */
 function extractWordAfterLabel(text: string, label: string): string {
   const afterLabel = extractAfterLabel(text, label);
-  return afterLabel.split(' ')[0] ?? '';
+  return afterLabel.split(" ")[0] ?? "";
 }
 
 /**
@@ -264,28 +270,31 @@ function parseVehicleInventoryHTML(
     const $ = cheerio.load(html);
     const base = new URL(API_ENDPOINTS.LKQ_BASE);
 
-    $('.pypvi_resultRow[id]').each((_, el) => {
+    $(".pypvi_resultRow[id]").each((_, el) => {
       try {
-        const id = $(el).attr('id');
+        const id = $(el).attr("id");
         if (!id) return;
 
         // Main image
-        const mainImageHref = $(el).find('a.fancybox-thumb.pypvi_image').attr('href') ?? '';
-        const mainImageUrl = mainImageHref ? new URL(mainImageHref, base).toString() : '';
+        const mainImageHref =
+          $(el).find("a.fancybox-thumb.pypvi_image").attr("href") ?? "";
+        const mainImageUrl = mainImageHref
+          ? new URL(mainImageHref, base).toString()
+          : "";
 
         // Thumbnails
         const thumbnails = $(el)
-          .find('.pypvi_images a[data-fancybox]')
+          .find(".pypvi_images a[data-fancybox]")
           .map((_, a) => {
-            const href = $(a).attr('href');
-            return href ? new URL(href, base).toString() : '';
+            const href = $(a).attr("href");
+            return href ? new URL(href, base).toString() : "";
           })
           .get()
-          .filter(url => url !== '');
+          .filter((url) => url !== "");
 
         // Combine main image and thumbnails into VehicleImage array
         const images: VehicleImage[] = [];
-        
+
         if (mainImageUrl) {
           images.push({
             url: removeCropParameters(mainImageUrl),
@@ -294,7 +303,7 @@ function parseVehicleInventoryHTML(
           });
         }
 
-        thumbnails.forEach(thumbnailUrl => {
+        thumbnails.forEach((thumbnailUrl) => {
           images.push({
             url: removeCropParameters(thumbnailUrl),
             thumbnailUrl,
@@ -303,42 +312,53 @@ function parseVehicleInventoryHTML(
         });
 
         // Year, Make, Model
-        const ymmText = $(el).find('.pypvi_ymm').text().trim();
-        const normalizedYmm = ymmText.replace(/\s+/g, ' ').trim();
-        const [yearStr = '', make = '', ...modelParts] = normalizedYmm.split(' ');
-        const model = modelParts.join(' ');
+        const ymmText = $(el).find(".pypvi_ymm").text().trim();
+        const normalizedYmm = ymmText.replace(/\s+/g, " ").trim();
+        const [yearStr = "", make = "", ...modelParts] =
+          normalizedYmm.split(" ");
+        const model = modelParts.join(" ");
         const year = parseInt(yearStr) || 0;
 
         // Details
-        const colorText = $(el).find(".pypvi_detailItem:contains('Color:')").text();
-        const color = extractAfterLabel(colorText, 'Color:');
+        const colorText = $(el)
+          .find(".pypvi_detailItem:contains('Color:')")
+          .text();
+        const color = extractAfterLabel(colorText, "Color:");
 
         const vinText = $(el).find(".pypvi_detailItem:contains('VIN:')").text();
-        const vin = extractAfterLabel(vinText, 'VIN:');
+        const vin = extractAfterLabel(vinText, "VIN:");
 
-        const sectionText = $(el).find(".pypvi_detailItem:contains('Section:')").text();
-        const section = extractWordAfterLabel(sectionText, 'Section:');
+        const sectionText = $(el)
+          .find(".pypvi_detailItem:contains('Section:')")
+          .text();
+        const section = extractWordAfterLabel(sectionText, "Section:");
 
         const rowText = $(el).find(".pypvi_detailItem:contains('Row:')").text();
-        const row = extractWordAfterLabel(rowText, 'Row:');
+        const row = extractWordAfterLabel(rowText, "Row:");
 
-        const spaceText = $(el).find(".pypvi_detailItem:contains('Space:')").text();
-        const space = extractWordAfterLabel(spaceText, 'Space:');
+        const spaceText = $(el)
+          .find(".pypvi_detailItem:contains('Space:')")
+          .text();
+        const space = extractWordAfterLabel(spaceText, "Space:");
 
-        const stockText = $(el).find(".pypvi_detailItem:contains('Stock #:')").text();
-        const stockNumber = extractAfterLabel(stockText, 'Stock #:');
+        const stockText = $(el)
+          .find(".pypvi_detailItem:contains('Stock #:')")
+          .text();
+        const stockNumber = extractAfterLabel(stockText, "Stock #:");
 
         // Available date
         let availableDate = new Date().toISOString();
-        const datetimeAttr = $(el).find('time[datetime]').attr('datetime');
+        const datetimeAttr = $(el).find("time[datetime]").attr("datetime");
         if (datetimeAttr) {
           const parsedDate = new Date(datetimeAttr);
           if (!isNaN(parsedDate.getTime())) {
             availableDate = parsedDate.toISOString();
           }
         } else {
-          const availableText = $(el).find(".pypvi_detailItem:contains('Available:')").text();
-          const availableRaw = extractAfterLabel(availableText, 'Available:');
+          const availableText = $(el)
+            .find(".pypvi_detailItem:contains('Available:')")
+            .text();
+          const availableRaw = extractAfterLabel(availableText, "Available:");
           if (availableRaw) {
             const dateMatch = /(\d{1,2}\/\d{1,2}\/\d{4})/.exec(availableRaw);
             if (dateMatch?.[1]) {
