@@ -16,8 +16,10 @@ import {
   SearchResults,
   SearchSummary,
 } from "~/components/search/SearchResults";
+import { MobileFiltersDrawer } from "~/components/search/MobileFiltersDrawer";
 import { Sidebar } from "~/components/search/Sidebar";
 import { ThemeToggle } from "~/components/theme/theme-toggle";
+import { useIsMobile } from "~/hooks/use-media-query";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
@@ -36,6 +38,7 @@ import { api } from "~/trpc/react";
 function SearchPageContent() {
   const [query, setQuery] = useQueryState("q", { defaultValue: "" });
   const currentYear = new Date().getFullYear();
+  const isMobile = useIsMobile();
 
   // Sidebar state
   const [showFilters, setShowFilters] = useState(false);
@@ -520,8 +523,8 @@ function SearchPageContent() {
         </div>
 
         <div className="relative flex w-full gap-6">
-          {/* Sidebar - only render when filters are shown */}
-          {showFilters && (
+          {/* Desktop Sidebar - only render when filters are shown and not on mobile */}
+          {!isMobile && showFilters && (
             <div className="sticky top-6 h-fit">
               <Sidebar
                 showFilters={showFilters}
@@ -591,20 +594,31 @@ function SearchPageContent() {
                       </Select>
                     </div>
 
-                    {/* Filter Toggle Button */}
-                    <Button
-                      variant="outline"
-                      className="flex items-center gap-2 bg-transparent"
-                      onClick={() => setShowFilters(!showFilters)}
-                    >
-                      <Filter className="h-4 w-4" />
-                      Filters
-                      {activeFilterCount > 0 && (
-                        <Badge variant="secondary" className="ml-1 text-xs">
-                          {activeFilterCount}
-                        </Badge>
-                      )}
-                    </Button>
+                    {/* Filter Toggle Button - Mobile/Desktop */}
+                    {isMobile ? (
+                      <MobileFiltersDrawer
+                        activeFilterCount={activeFilterCount}
+                        clearAllFilters={clearAllFilters}
+                        filters={filters}
+                        filterOptions={filterOptions}
+                        toggleArrayFilter={toggleArrayFilter}
+                        updateFilter={updateFilter}
+                      />
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2 bg-transparent"
+                        onClick={() => setShowFilters(!showFilters)}
+                      >
+                        <Filter className="h-4 w-4" />
+                        Filters
+                        {activeFilterCount > 0 && (
+                          <Badge variant="secondary" className="ml-1 text-xs">
+                            {activeFilterCount}
+                          </Badge>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -660,7 +674,7 @@ function SearchPageContent() {
                   }
                 }
                 isLoading={searchLoading}
-                sidebarOpen={showFilters}
+                sidebarOpen={!isMobile && showFilters}
               />
             )}
 
