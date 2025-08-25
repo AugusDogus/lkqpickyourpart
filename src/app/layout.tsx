@@ -6,6 +6,7 @@ import { Geist } from "next/font/google";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Toaster } from "~/components/ui/sonner";
 
+import { TailwindIndicator } from "~/components/tailwind-indicator";
 import { ThemeProvider } from "~/components/theme/theme-provider";
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
             >
               {children}
               <Analytics />
+              <TailwindIndicator />
             </ThemeProvider>
           </TRPCReactProvider>
         </NuqsAdapter>
