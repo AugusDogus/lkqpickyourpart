@@ -81,7 +81,7 @@ export interface SearchFilters {
   dateRange?: [Date, Date];
   maxDistance?: number;
   userLocation?: [number, number];
-  sortBy?: "distance" | "date" | "year" | "make" | "location";
+  sortBy?: "newest" | "oldest" | "year-desc" | "year-asc" | "distance";
   sortOrder?: "asc" | "desc";
 }
 

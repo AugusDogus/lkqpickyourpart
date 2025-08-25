@@ -5,6 +5,7 @@ import {
   ArrowUpDown,
   Calendar,
   Filter,
+  MapPin,
   Search,
 } from "lucide-react";
 import { useQueryState } from "nuqs";
@@ -55,6 +56,8 @@ function SearchPageContent() {
       case "year-desc":
       case "year-asc":
         return ArrowUpDown;
+      case "distance":
+        return MapPin;
       default:
         return ArrowUpDown;
     }
@@ -110,6 +113,10 @@ function SearchPageContent() {
   } = api.vehicles.search.useQuery(
     {
       query: debouncedQuery,
+      makes: filters.makes?.length ? filters.makes : undefined,
+      colors: filters.colors?.length ? filters.colors : undefined,
+      states: filters.states?.length ? filters.states : undefined,
+      yearRange: hasUserChangedRange ? debouncedYearRange : undefined,
     },
     {
       enabled: debouncedQuery.length > 0,
@@ -469,6 +476,10 @@ function SearchPageContent() {
           return sorted.sort((a, b) => b.year - a.year);
         case "year-asc":
           return sorted.sort((a, b) => a.year - b.year);
+        case "distance":
+          return sorted.sort(
+            (a, b) => a.location.distance - b.location.distance,
+          );
         default:
           return sorted;
       }
@@ -589,6 +600,9 @@ function SearchPageContent() {
                           </SelectItem>
                           <SelectItem value="year-asc">
                             Year (Low to High)
+                          </SelectItem>
+                          <SelectItem value="distance">
+                            Distance (Nearest)
                           </SelectItem>
                         </SelectContent>
                       </Select>
