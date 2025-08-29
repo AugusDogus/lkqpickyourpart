@@ -63,7 +63,7 @@ export function SearchResults({
         {Array.from({ length: amountOfSkeletons }).map((_, index) => (
           <Card key={index} className="overflow-hidden py-0">
             <CardHeader className="p-0">
-              <Skeleton className="aspect-video" />
+              <Skeleton className="aspect-video rounded-t-md rounded-b-none" />
             </CardHeader>
             <CardContent className="space-y-3 p-4">
               <Skeleton className="h-5 w-3/4" />
