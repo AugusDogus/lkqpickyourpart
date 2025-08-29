@@ -49,33 +49,35 @@ export function SidebarContent({
 }: SidebarContentProps) {
   return (
     <div className="space-y-6">
-      {/* Make Filter */}
-      <Collapsible defaultOpen>
-        <CollapsibleTrigger className="hover:bg-accent flex w-full items-center justify-between rounded p-2">
-          <span className="font-medium">Make</span>
-          <ChevronDown className="h-4 w-4" />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-2 space-y-2">
-          {filterOptions.makes.map((make) => (
-            <div key={make} className="flex items-center space-x-2 pr-3 pl-3">
-              <Checkbox
-                id={`make-${make}`}
-                checked={makes.includes(make)}
-                onCheckedChange={() => {
-                  if (makes.includes(make)) {
-                    onMakesChange(makes.filter((m) => m !== make));
-                  } else {
-                    onMakesChange([...makes, make]);
-                  }
-                }}
-              />
-              <Label htmlFor={`make-${make}`} className="text-sm">
-                {make}
-              </Label>
-            </div>
-          ))}
-        </CollapsibleContent>
-      </Collapsible>
+      {/* Make Filter - Only show if there are multiple makes available */}
+      {filterOptions.makes.length > 1 && (
+        <Collapsible defaultOpen>
+          <CollapsibleTrigger className="hover:bg-accent flex w-full items-center justify-between rounded p-2">
+            <span className="font-medium">Make</span>
+            <ChevronDown className="h-4 w-4" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2 space-y-2">
+            {filterOptions.makes.map((make) => (
+              <div key={make} className="flex items-center space-x-2 pr-3 pl-3">
+                <Checkbox
+                  id={`make-${make}`}
+                  checked={makes.includes(make)}
+                  onCheckedChange={() => {
+                    if (makes.includes(make)) {
+                      onMakesChange(makes.filter((m) => m !== make));
+                    } else {
+                      onMakesChange([...makes, make]);
+                    }
+                  }}
+                />
+                <Label htmlFor={`make-${make}`} className="text-sm">
+                  {make}
+                </Label>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
 
       {/* Year Range Filter */}
       <Collapsible defaultOpen>
