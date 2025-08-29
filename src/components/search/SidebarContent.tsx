@@ -100,6 +100,14 @@ export function SidebarContent({
               max={yearRangeLimits?.max ?? new Date().getFullYear()}
               step={1}
               className="w-full"
+              onPointerDown={(e) => {
+                // Prevent the drawer from dismissing when interacting with the slider
+                e.stopPropagation();
+              }}
+              onTouchStart={(e) => {
+                // Prevent the drawer from dismissing when interacting with the slider
+                e.stopPropagation();
+              }}
             />
           </div>
         </CollapsibleContent>
