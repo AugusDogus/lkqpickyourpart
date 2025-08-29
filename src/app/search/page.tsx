@@ -441,35 +441,35 @@ function SearchPageContent() {
 
                   <div className="flex items-center gap-4">
                     {/* Sort */}
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const IconComponent = getSortIcon(sortBy);
-                        return (
-                          <IconComponent className="text-muted-foreground h-4 w-4" />
-                        );
-                      })()}
-                      <Select
-                        value={sortBy}
-                        onValueChange={(value) => setSortBy(value)}
-                      >
-                        <SelectTrigger className="w-44">
+                    <Select
+                      value={sortBy}
+                      onValueChange={(value) => setSortBy(value)}
+                    >
+                      <SelectTrigger className="w-fit">
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const IconComponent = getSortIcon(sortBy);
+                            return (
+                              <IconComponent className="text-muted-foreground h-4 w-4" />
+                            );
+                          })()}
                           <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="newest">Newest First</SelectItem>
-                          <SelectItem value="oldest">Oldest First</SelectItem>
-                          <SelectItem value="year-desc">
-                            Year (High to Low)
-                          </SelectItem>
-                          <SelectItem value="year-asc">
-                            Year (Low to High)
-                          </SelectItem>
-                          <SelectItem value="distance">
-                            Distance (Nearest)
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                        <SelectItem value="year-desc">
+                          Year (High to Low)
+                        </SelectItem>
+                        <SelectItem value="year-asc">
+                          Year (Low to High)
+                        </SelectItem>
+                        <SelectItem value="distance">
+                          Distance (Nearest)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
 
                     {/* Filter Toggle Button - Mobile/Desktop */}
                     {isMobile ? (
