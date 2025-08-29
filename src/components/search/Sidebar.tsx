@@ -2,7 +2,6 @@ import { X } from "lucide-react";
 import { Badge } from "~/components/ui/badge";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import type { SearchFilters } from "~/lib/types";
 import { SidebarContent } from "./SidebarContent";
 
 interface FilterOptions {
@@ -17,16 +16,21 @@ interface SidebarProps {
   setShowFilters: (show: boolean) => void;
   activeFilterCount: number;
   clearAllFilters: () => void;
-  filters: SearchFilters;
+  makes: string[];
+  colors: string[];
+  states: string[];
+  salvageYards: string[];
+  yearRange: [number, number];
   filterOptions: FilterOptions;
-  toggleArrayFilter: (
-    key: "makes" | "colors" | "states" | "salvageYards",
-    value: string,
-  ) => void;
-  updateFilter: (
-    key: string,
-    value: number | [number, number] | string[],
-  ) => void;
+  onMakesChange: (makes: string[]) => void;
+  onColorsChange: (colors: string[]) => void;
+  onStatesChange: (states: string[]) => void;
+  onSalvageYardsChange: (salvageYards: string[]) => void;
+  onYearRangeChange: (range: [number, number]) => void;
+  yearRangeLimits?: {
+    min: number;
+    max: number;
+  };
 }
 
 export function Sidebar({
@@ -34,10 +38,18 @@ export function Sidebar({
   setShowFilters,
   activeFilterCount,
   clearAllFilters,
-  filters,
+  makes,
+  colors,
+  states,
+  salvageYards,
+  yearRange,
   filterOptions,
-  toggleArrayFilter,
-  updateFilter,
+  onMakesChange,
+  onColorsChange,
+  onStatesChange,
+  onSalvageYardsChange,
+  onYearRangeChange,
+  yearRangeLimits,
 }: SidebarProps) {
   return (
     <div>
@@ -85,10 +97,18 @@ export function Sidebar({
               }}
             >
               <SidebarContent
-                filters={filters}
+                makes={makes}
+                colors={colors}
+                states={states}
+                salvageYards={salvageYards}
+                yearRange={yearRange}
                 filterOptions={filterOptions}
-                toggleArrayFilter={toggleArrayFilter}
-                updateFilter={updateFilter}
+                onMakesChange={onMakesChange}
+                onColorsChange={onColorsChange}
+                onStatesChange={onStatesChange}
+                onSalvageYardsChange={onSalvageYardsChange}
+                onYearRangeChange={onYearRangeChange}
+                yearRangeLimits={yearRangeLimits}
               />
             </CardContent>
           </Card>

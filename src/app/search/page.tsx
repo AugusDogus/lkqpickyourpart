@@ -8,7 +8,12 @@ import {
   MapPin,
   Search,
 } from "lucide-react";
-import { useQueryState } from "nuqs";
+import {
+  parseAsArrayOf,
+  parseAsInteger,
+  parseAsString,
+  useQueryState,
+} from "nuqs";
 import { Suspense, useCallback, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { ErrorBoundary } from "~/components/ErrorBoundary";
@@ -33,7 +38,7 @@ import {
 import { Skeleton } from "~/components/ui/skeleton";
 import { useIsMobile } from "~/hooks/use-media-query";
 import { ERROR_MESSAGES, SEARCH_CONFIG } from "~/lib/constants";
-import type { SearchFilters, Vehicle } from "~/lib/types";
+import type { Vehicle } from "~/lib/types";
 import { api } from "~/trpc/react";
 
 function SearchPageContent() {
@@ -41,11 +46,14 @@ function SearchPageContent() {
   const currentYear = new Date().getFullYear();
   const isMobile = useIsMobile();
 
-  // Sidebar state
+  // Sidebar state (local only - not in URL)
   const [showFilters, setShowFilters] = useState(false);
 
-  // Sort state
-  const [sortBy, setSortBy] = useState("newest");
+  // Sort state - should be in URL for shareability
+  const [sortBy, setSortBy] = useQueryState(
+    "sort",
+    parseAsString.withDefault("newest"),
+  );
 
   // Get the appropriate icon for the current sort option
   const getSortIcon = useCallback((sortOption: string) => {
@@ -63,48 +71,38 @@ function SearchPageContent() {
     }
   }, []);
 
-  // URL state for year range (using null as default to indicate no custom range set)
-  const [minYearParam, setMinYearParam] = useQueryState("minYear", {
-    parse: (value) => parseInt(value) || null,
-    serialize: (value) => value?.toString() ?? "",
-  });
-  const [maxYearParam, setMaxYearParam] = useQueryState("maxYear", {
-    parse: (value) => parseInt(value) || null,
-    serialize: (value) => value?.toString() ?? "",
-  });
-
-  // Local state for year range (for real-time updates) - use fallback defaults initially
-  const [yearRange, setYearRange] = useState<[number, number]>([
-    minYearParam ?? 1990,
-    maxYearParam ?? currentYear,
-  ]);
-
-  // Track if user has manually changed the year range
-  const [hasUserChangedRange, setHasUserChangedRange] = useState(
-    // Check if URL already has custom year parameters
-    minYearParam !== null || maxYearParam !== null,
+  // URL state for year range using built-in integer parser
+  const [minYearParam, setMinYearParam] = useQueryState(
+    "minYear",
+    parseAsInteger,
+  );
+  const [maxYearParam, setMaxYearParam] = useQueryState(
+    "maxYear",
+    parseAsInteger,
   );
 
-  // Filter state for comprehensive filtering
-  const [filters, setFilters] = useState<SearchFilters>({
-    query: "",
-    makes: [],
-    colors: [],
-    states: [],
-    salvageYards: [],
-    yearRange: [minYearParam ?? 1990, maxYearParam ?? currentYear],
-  });
+  // Individual filter states using nuqs built-in parsers
+  const [makes, setMakes] = useQueryState(
+    "makes",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [colors, setColors] = useQueryState(
+    "colors",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [states, setStates] = useQueryState(
+    "states",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
+  const [salvageYards, setSalvageYards] = useQueryState(
+    "yards",
+    parseAsArrayOf(parseAsString).withDefault([]),
+  );
 
   // Debounce the query for search API calls
   const [debouncedQuery] = useDebounce(query, SEARCH_CONFIG.DEBOUNCE_DELAY);
 
-  // Debounce the year range for filtering performance (but not slider visual state)
-  const [debouncedYearRange] = useDebounce(yearRange, 100);
-
-  // Debounce year range for URL updates (stops updating URL while dragging)
-  const [debouncedYearRangeForURL] = useDebounce(yearRange, 300);
-
-  // Perform search with debounced query
+  // Perform search with debounced query - filtering is done client-side
   const {
     data: searchResults,
     isLoading: searchLoading,
@@ -113,10 +111,10 @@ function SearchPageContent() {
   } = api.vehicles.search.useQuery(
     {
       query: debouncedQuery,
-      makes: filters.makes?.length ? filters.makes : undefined,
-      colors: filters.colors?.length ? filters.colors : undefined,
-      states: filters.states?.length ? filters.states : undefined,
-      yearRange: hasUserChangedRange ? debouncedYearRange : undefined,
+      makes: undefined,
+      colors: undefined,
+      states: undefined,
+      yearRange: undefined,
     },
     {
       enabled: debouncedQuery.length > 0,
@@ -125,20 +123,49 @@ function SearchPageContent() {
     },
   );
 
-  // Calculate min/max years from search results after API call
-  const { minYear: dataMinYear, maxYear: dataMaxYear } = useMemo(() => {
+  // Calculate minimum year from search results
+  const dataMinYear = useMemo(() => {
     if (!searchResults?.vehicles || searchResults.vehicles.length === 0) {
-      return { minYear: 1990, maxYear: currentYear }; // Fallback only when no data
+      return 1900; // Fallback only when no data
     }
 
     const years = searchResults.vehicles.map(
       (vehicle: Vehicle) => vehicle.year,
     );
-    return {
-      minYear: Math.min(...years),
-      maxYear: Math.max(...years),
-    };
-  }, [searchResults?.vehicles, currentYear]);
+    return Math.min(...years);
+  }, [searchResults?.vehicles]);
+
+  // Year range from URL state (user interacts with this directly)
+  const yearRange = useMemo(
+    (): [number, number] => [
+      minYearParam ?? dataMinYear,
+      maxYearParam ?? currentYear,
+    ],
+    [minYearParam, maxYearParam, dataMinYear, currentYear],
+  );
+
+  // Custom year range setters that clear URL params when at defaults
+  const setMinYear = useCallback(
+    (value: number | null) => {
+      if (value === dataMinYear) {
+        void setMinYearParam(null);
+      } else {
+        void setMinYearParam(value);
+      }
+    },
+    [dataMinYear, setMinYearParam],
+  );
+
+  const setMaxYear = useCallback(
+    (value: number | null) => {
+      if (value === currentYear) {
+        void setMaxYearParam(null);
+      } else {
+        void setMaxYearParam(value);
+      }
+    },
+    [currentYear, setMaxYearParam],
+  );
 
   const handleSearch = () => {
     void refetchSearch();
@@ -150,58 +177,6 @@ function SearchPageContent() {
     },
     [setQuery],
   );
-
-  // Sync local state when URL parameters change (e.g., browser back/forward)
-  useMemo(() => {
-    setYearRange([minYearParam ?? dataMinYear, maxYearParam ?? dataMaxYear]);
-  }, [minYearParam, maxYearParam, dataMinYear, dataMaxYear]);
-
-  // Update URL parameters with debounced year range (only if user has manually changed it)
-  useMemo(() => {
-    if (hasUserChangedRange) {
-      const [min, max] = debouncedYearRangeForURL;
-
-      // If the values match the data defaults, clear the URL parameters
-      if (min === dataMinYear && max === dataMaxYear) {
-        void setMinYearParam(null);
-        void setMaxYearParam(null);
-        // Don't reset hasUserChangedRange - keep it true so future changes still update URL
-      } else {
-        void setMinYearParam(min);
-        void setMaxYearParam(max);
-      }
-    }
-  }, [
-    debouncedYearRangeForURL,
-    hasUserChangedRange,
-    dataMinYear,
-    dataMaxYear,
-    setMinYearParam,
-    setMaxYearParam,
-  ]);
-
-  // Update year range when search results change (but only if URL params are null - no custom range)
-  useMemo(() => {
-    if (searchResults?.vehicles && searchResults.vehicles.length > 0) {
-      // Only auto-update if user hasn't set custom range in URL
-      const hasNoCustomRange = minYearParam === null && maxYearParam === null;
-      if (hasNoCustomRange) {
-        const newRange: [number, number] = [dataMinYear, currentYear];
-        setYearRange(newRange);
-        setFilters((prev) => ({
-          ...prev,
-          yearRange: newRange,
-        }));
-        // Don't update URL params here - let them stay null so they don't appear in URL
-      }
-    }
-  }, [
-    dataMinYear,
-    currentYear,
-    searchResults?.vehicles,
-    minYearParam,
-    maxYearParam,
-  ]);
 
   // Calculate filter options from search results
   const filterOptions = useMemo(() => {
@@ -225,234 +200,108 @@ function SearchPageContent() {
       ),
     ].sort();
 
-    // Create state-to-yard mapping for smart filtering
-    const stateToYards = new Map<string, string[]>();
-    searchResults.vehicles.forEach((vehicle: Vehicle) => {
-      const state = vehicle.location.state;
-      const yard = vehicle.location.name;
-
-      if (!stateToYards.has(state)) {
-        stateToYards.set(state, []);
-      }
-
-      const yards = stateToYards.get(state)!;
-      if (!yards.includes(yard)) {
-        yards.push(yard);
-      }
-    });
-
-    // Smart filtering based on current selections
-    let states = Array.from(stateToYards.keys()).sort();
-    let salvageYards: string[] = [];
-
-    // If states are selected, only show yards in those states
-    if (filters.states && filters.states.length > 0) {
-      salvageYards = Array.from(
-        new Set(
-          filters.states.flatMap((state) => stateToYards.get(state) ?? []),
+    // Show all states and yards (no cross-filtering)
+    const allStates = Array.from(
+      new Set(
+        searchResults.vehicles.map(
+          (vehicle: Vehicle) => vehicle.location.state,
         ),
-      ).sort();
-    } else {
-      // Show all yards
-      salvageYards = Array.from(
-        new Set(
-          searchResults.vehicles.map(
-            (vehicle: Vehicle) => vehicle.location.name,
-          ),
-        ),
-      ).sort();
-    }
+      ),
+    ).sort();
+    const allSalvageYards = Array.from(
+      new Set(
+        searchResults.vehicles.map((vehicle: Vehicle) => vehicle.location.name),
+      ),
+    ).sort();
 
-    // If salvage yards are selected, only show states that have those yards
-    if (filters.salvageYards && filters.salvageYards.length > 0) {
-      const selectedYards = new Set(filters.salvageYards);
-      const statesWithSelectedYards = new Set<string>();
+    return {
+      makes,
+      colors,
+      states: allStates,
+      salvageYards: allSalvageYards,
+    };
+  }, [searchResults?.vehicles]);
 
-      searchResults.vehicles.forEach((vehicle: Vehicle) => {
-        if (selectedYards.has(vehicle.location.name)) {
-          statesWithSelectedYards.add(vehicle.location.state);
-        }
-      });
+  const clearAllFilters = () => {
+    void setMakes([]);
+    void setColors([]);
+    void setStates([]);
+    void setSalvageYards([]);
 
-      states = Array.from(statesWithSelectedYards).sort();
-    }
-
-    return { makes, colors, states, salvageYards };
-  }, [searchResults?.vehicles, filters.states, filters.salvageYards]);
-
-  // Filter update functions
-  const updateFilter = useCallback(
-    (key: string, value: number | [number, number] | string[]) => {
-      setFilters((prev) => ({
-        ...prev,
-        [key]: value,
-      }));
-
-      // Update year range specifically
-      if (key === "yearRange") {
-        setYearRange(value as [number, number]);
-        setHasUserChangedRange(true);
-      }
-    },
-    [],
-  );
-
-  const toggleArrayFilter = useCallback(
-    (
-      filterType: "makes" | "colors" | "states" | "salvageYards",
-      value: string,
-    ) => {
-      setFilters((prev) => {
-        const currentArray = prev[filterType] ?? [];
-
-        if (currentArray.includes(value)) {
-          // Removing an item - just filter it out
-          return {
-            ...prev,
-            [filterType]: currentArray.filter((item) => item !== value),
-          };
-        } else {
-          // Adding an item - check for compatibility
-          const newFilters = { ...prev };
-
-          if (filterType === "states") {
-            // If adding a state, check if any selected salvage yards are incompatible
-            const incompatibleYards = (prev.salvageYards ?? []).filter(
-              (yard) => {
-                // Check if this yard exists in the newly selected state
-                const stateYards = Array.from(
-                  new Set(
-                    searchResults?.vehicles
-                      ?.filter((vehicle) => vehicle.location.state === value)
-                      .map((vehicle) => vehicle.location.name) ?? [],
-                  ),
-                );
-                return !stateYards.includes(yard);
-              },
-            );
-
-            // Remove incompatible salvage yards
-            if (incompatibleYards.length > 0) {
-              newFilters.salvageYards = (prev.salvageYards ?? []).filter(
-                (yard) => !incompatibleYards.includes(yard),
-              );
-            }
-          } else if (filterType === "salvageYards") {
-            // If adding a salvage yard, check if any selected states are incompatible
-            const yardStates =
-              searchResults?.vehicles
-                ?.filter((vehicle) => vehicle.location.name === value)
-                .map((vehicle) => vehicle.location.state) ?? [];
-
-            const incompatibleStates = (prev.states ?? []).filter(
-              (state) => !yardStates.includes(state),
-            );
-
-            // Remove incompatible states
-            if (incompatibleStates.length > 0) {
-              newFilters.states = (prev.states ?? []).filter(
-                (state) => !incompatibleStates.includes(state),
-              );
-            }
-          }
-
-          // Add the new item
-          newFilters[filterType] = [...currentArray, value];
-
-          return newFilters;
-        }
-      });
-    },
-    [searchResults?.vehicles],
-  );
-
-  const clearAllFilters = useCallback(() => {
-    // Use data minimum if available, but always use current year as maximum
-    const dataYearRange: [number, number] =
-      searchResults?.vehicles && searchResults.vehicles.length > 0
-        ? [dataMinYear, currentYear]
-        : [1990, currentYear];
-
-    setFilters({
-      query: "",
-      makes: [],
-      colors: [],
-      states: [],
-      salvageYards: [],
-      yearRange: dataYearRange,
-    });
-    setYearRange(dataYearRange);
-    setHasUserChangedRange(false);
-  }, [currentYear, searchResults?.vehicles, dataMinYear]);
+    // Clear URL parameters when user explicitly clears all filters
+    void setMinYearParam(null);
+    void setMaxYearParam(null);
+    void setSortBy("newest"); // Reset sort to default
+    setShowFilters(false); // Close sidebar
+  };
 
   // Calculate active filter count
   const activeFilterCount = useMemo(() => {
     const dataYearRange: [number, number] =
       searchResults?.vehicles && searchResults.vehicles.length > 0
         ? [dataMinYear, currentYear]
-        : [1990, currentYear];
+        : [1900, currentYear];
 
     return (
-      (filters.makes?.length ?? 0) +
-      (filters.colors?.length ?? 0) +
-      (filters.states?.length ?? 0) +
-      (filters.salvageYards?.length ?? 0) +
-      (filters.yearRange &&
-      (filters.yearRange[0] !== dataYearRange[0] ||
-        filters.yearRange[1] !== dataYearRange[1])
+      makes.length +
+      colors.length +
+      states.length +
+      salvageYards.length +
+      (yearRange &&
+      (yearRange[0] !== dataYearRange[0] || yearRange[1] !== dataYearRange[1])
         ? 1
         : 0)
     );
-  }, [filters, currentYear, searchResults?.vehicles, dataMinYear]);
+  }, [
+    makes,
+    colors,
+    states,
+    salvageYards,
+    yearRange,
+    currentYear,
+    searchResults?.vehicles,
+    dataMinYear,
+  ]);
 
-  // Comprehensive filtering logic
+  // Comprehensive filtering logic - all client-side, no server filtering
   const filteredVehicles = useMemo(() => {
     if (!searchResults?.vehicles) return [];
 
     return searchResults.vehicles.filter((vehicle: Vehicle) => {
       // Year range filter
       if (
-        vehicle.year < debouncedYearRange[0] ||
-        vehicle.year > debouncedYearRange[1]
+        yearRange &&
+        (vehicle.year < yearRange[0] || vehicle.year > yearRange[1])
       ) {
         return false;
       }
 
       // Make filter
-      if (
-        (filters.makes?.length ?? 0) > 0 &&
-        !filters.makes?.includes(vehicle.make)
-      ) {
+      if (makes.length > 0 && !makes.includes(vehicle.make)) {
         return false;
       }
 
       // Color filter
-      if (
-        (filters.colors?.length ?? 0) > 0 &&
-        !filters.colors?.includes(vehicle.color)
-      ) {
+      if (colors.length > 0 && !colors.includes(vehicle.color)) {
         return false;
       }
 
       // State filter
-      if (
-        (filters.states?.length ?? 0) > 0 &&
-        !filters.states?.includes(vehicle.location.state)
-      ) {
+      if (states.length > 0 && !states.includes(vehicle.location.state)) {
         return false;
       }
 
       // Salvage yard filter
       if (
-        (filters.salvageYards?.length ?? 0) > 0 &&
-        !filters.salvageYards?.includes(vehicle.location.name)
+        salvageYards.length > 0 &&
+        !salvageYards.includes(vehicle.location.name)
       ) {
         return false;
       }
 
       return true;
     });
-  }, [searchResults?.vehicles, debouncedYearRange, filters]);
+  }, [searchResults?.vehicles, makes, colors, states, salvageYards, yearRange]);
 
   // Sorting function
   const sortVehicles = useCallback(
@@ -542,10 +391,24 @@ function SearchPageContent() {
                 setShowFilters={setShowFilters}
                 activeFilterCount={activeFilterCount}
                 clearAllFilters={clearAllFilters}
-                filters={filters}
+                makes={makes}
+                colors={colors}
+                states={states}
+                salvageYards={salvageYards}
+                yearRange={yearRange}
                 filterOptions={filterOptions}
-                toggleArrayFilter={toggleArrayFilter}
-                updateFilter={updateFilter}
+                onMakesChange={setMakes}
+                onColorsChange={setColors}
+                onStatesChange={setStates}
+                onSalvageYardsChange={setSalvageYards}
+                onYearRangeChange={(range: [number, number]) => {
+                  setMinYear(range[0]);
+                  setMaxYear(range[1]);
+                }}
+                yearRangeLimits={{
+                  min: dataMinYear,
+                  max: currentYear,
+                }}
               />
             </div>
           )}
@@ -613,10 +476,24 @@ function SearchPageContent() {
                       <MobileFiltersDrawer
                         activeFilterCount={activeFilterCount}
                         clearAllFilters={clearAllFilters}
-                        filters={filters}
+                        makes={makes}
+                        colors={colors}
+                        states={states}
+                        salvageYards={salvageYards}
+                        yearRange={yearRange}
                         filterOptions={filterOptions}
-                        toggleArrayFilter={toggleArrayFilter}
-                        updateFilter={updateFilter}
+                        onMakesChange={setMakes}
+                        onColorsChange={setColors}
+                        onStatesChange={setStates}
+                        onSalvageYardsChange={setSalvageYards}
+                        onYearRangeChange={(range: [number, number]) => {
+                          setMinYear(range[0]);
+                          setMaxYear(range[1]);
+                        }}
+                        yearRangeLimits={{
+                          min: dataMinYear,
+                          max: currentYear,
+                        }}
                       />
                     ) : (
                       <Button
